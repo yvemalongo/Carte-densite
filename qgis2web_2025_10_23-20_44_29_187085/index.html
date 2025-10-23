@@ -1,0 +1,2328 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+
+
+
+
+
+             }
+
+       /* Add a black background color to the top navigation */
+.topnav {
+  background-color: #333;
+  overflow: hidden;
+}
+
+/* Style the links inside the navigation bar */
+.topnav a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+/* Add a color to the active/current link */
+.topnav a.active {
+  background-color: #04AA6D;
+  color: white;
+}
+
+
+.centered-text {
+  text-align: center;
+}
+
+
+h1
+{
+
+
+text-align: center; /* centré */
+
+
+}
+
+
+
+.justifie
+{
+
+
+text-align: justify; /* justifiée */
+
+
+}
+
+
+
+.gauche
+{
+
+
+text-align: right; /*aligné à gauche*/
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </style>
+        <title>Densité population province de la RDC et structures de santé (Ives Malongo )  </title>
+    </head>
+    <body>
+
+        
+         <div class="topnav">
+  <a class="active" href="#home">Home</a>
+  <a href="#news">News</a>
+  <a href="#contact">Contact</a>
+  <a href="#about">About</a>
+</div>   
+
+        <h1>Densité Population Province de la RDC et structures de santé (Ives Malongo ) </h2>  
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet-svg-shape-markers.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet.markercluster.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/DensithabitantKm2_0.js"></script>
+        <script src="data/Structure_sante_1.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-27.09690360325903,-2.132780107827596],[16.80546759139517,37.98602863617289]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        function pop_DensithabitantKm2_0(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['GID_1'] !== null ? autolinker.link(String(feature.properties['GID_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['GID_0'] !== null ? autolinker.link(String(feature.properties['GID_0']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COUNTRY'] !== null ? autolinker.link(String(feature.properties['COUNTRY']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAME_1'] !== null ? autolinker.link(String(feature.properties['NAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VARNAME_1'] !== null ? autolinker.link(String(feature.properties['VARNAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NL_NAME_1'] !== null ? autolinker.link(String(feature.properties['NL_NAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TYPE_1'] !== null ? autolinker.link(String(feature.properties['TYPE_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ENGTYPE_1'] !== null ? autolinker.link(String(feature.properties['ENGTYPE_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CC_1'] !== null ? autolinker.link(String(feature.properties['CC_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HASC_1'] !== null ? autolinker.link(String(feature.properties['HASC_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ISO_1'] !== null ? autolinker.link(String(feature.properties['ISO_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['densite'] !== null ? autolinker.link(String(feature.properties['densite']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_DensithabitantKm2_0_0(feature) {
+            if (feature.properties['densite'] >= 7.361000 && feature.properties['densite'] <= 13.767500 ) {
+                return {
+                pane: 'pane_DensithabitantKm2_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,251,255,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['densite'] >= 13.767500 && feature.properties['densite'] <= 18.873333 ) {
+                return {
+                pane: 'pane_DensithabitantKm2_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(209,226,243,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['densite'] >= 18.873333 && feature.properties['densite'] <= 27.582000 ) {
+                return {
+                pane: 'pane_DensithabitantKm2_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(154,200,224,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['densite'] >= 27.582000 && feature.properties['densite'] <= 43.275333 ) {
+                return {
+                pane: 'pane_DensithabitantKm2_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(82,157,204,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['densite'] >= 43.275333 && feature.properties['densite'] <= 85.866500 ) {
+                return {
+                pane: 'pane_DensithabitantKm2_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(29,108,177,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['densite'] >= 85.866500 && feature.properties['densite'] <= 1170.835000 ) {
+                return {
+                pane: 'pane_DensithabitantKm2_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(8,48,107,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_DensithabitantKm2_0');
+        map.getPane('pane_DensithabitantKm2_0').style.zIndex = 400;
+        map.getPane('pane_DensithabitantKm2_0').style['mix-blend-mode'] = 'normal';
+        var layer_DensithabitantKm2_0 = new L.geoJson(json_DensithabitantKm2_0, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_DensithabitantKm2_0',
+            layerName: 'layer_DensithabitantKm2_0',
+            pane: 'pane_DensithabitantKm2_0',
+            onEachFeature: pop_DensithabitantKm2_0,
+            style: style_DensithabitantKm2_0_0,
+        });
+        bounds_group.addLayer(layer_DensithabitantKm2_0);
+        map.addLayer(layer_DensithabitantKm2_0);
+        function pop_Structure_sante_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZS'] !== null ? autolinker.link(String(feature.properties['ZS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AS_'] !== null ? autolinker.link(String(feature.properties['AS_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TERRITOIRE'] !== null ? autolinker.link(String(feature.properties['TERRITOIRE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['GROUPEMENT'] !== null ? autolinker.link(String(feature.properties['GROUPEMENT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SCE_SEM'] !== null ? autolinker.link(String(feature.properties['SCE_SEM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SCE_GEO'] !== null ? autolinker.link(String(feature.properties['SCE_GEO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ORIGINE'] !== null ? autolinker.link(String(feature.properties['ORIGINE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['MODIF'] !== null ? autolinker.link(String(feature.properties['MODIF']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NOM1'] !== null ? autolinker.link(String(feature.properties['NOM1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NOM2'] !== null ? autolinker.link(String(feature.properties['NOM2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TYPE'] !== null ? autolinker.link(String(feature.properties['TYPE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COLLECTIV'] !== null ? autolinker.link(String(feature.properties['COLLECTIV']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CODE_DSNIS'] !== null ? autolinker.link(String(feature.properties['CODE_DSNIS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['RGCCODE'] !== null ? autolinker.link(String(feature.properties['RGCCODE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CODE_GRPT'] !== null ? autolinker.link(String(feature.properties['CODE_GRPT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ETAT'] !== null ? autolinker.link(String(feature.properties['ETAT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Structure_sante_1_0() {
+            return {
+                pane: 'pane_Structure_sante_1',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(244,8,17,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Structure_sante_1');
+        map.getPane('pane_Structure_sante_1').style.zIndex = 401;
+        map.getPane('pane_Structure_sante_1').style['mix-blend-mode'] = 'normal';
+        var layer_Structure_sante_1 = new L.geoJson(json_Structure_sante_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Structure_sante_1',
+            layerName: 'layer_Structure_sante_1',
+            pane: 'pane_Structure_sante_1',
+            onEachFeature: pop_Structure_sante_1,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_Structure_sante_1_0(feature));
+            },
+        });
+        var cluster_Structure_sante_1 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_Structure_sante_1.addLayer(layer_Structure_sante_1);
+
+        bounds_group.addLayer(layer_Structure_sante_1);
+        cluster_Structure_sante_1.addTo(map);
+        const url = {"Nominatim": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim"],
+            feedbackLabel: '',
+            position: 'topleft',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Créer le nouvel élément bouton
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Ajouter le bouton à l'élément parent
+        search.insertBefore(button, search.firstChild);
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+        var overlaysTree = [
+            {label: '<img src="legend/Structure_sante_1.png" /> Structure_sante', layer: cluster_Structure_sante_1},
+            {label: 'Densité habitant / Km2<br /><table><tr><td style="text-align: center;"><img src="legend/DensithabitantKm2_0_741380.png" /></td><td>7,4 - 13,8</td></tr><tr><td style="text-align: center;"><img src="legend/DensithabitantKm2_0_1381891.png" /></td><td>13,8 - 18,9</td></tr><tr><td style="text-align: center;"><img src="legend/DensithabitantKm2_0_1892762.png" /></td><td>18,9 - 27,6</td></tr><tr><td style="text-align: center;"><img src="legend/DensithabitantKm2_0_2764333.png" /></td><td>27,6 - 43,3</td></tr><tr><td style="text-align: center;"><img src="legend/DensithabitantKm2_0_4338594.png" /></td><td>43,3 - 85,9</td></tr><tr><td style="text-align: center;"><img src="legend/DensithabitantKm2_0_859117085.png" /></td><td>85,9 - 1170,8</td></tr></table>', layer: layer_DensithabitantKm2_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: cluster_gadm41_COD_1_0,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'NAME_1'}));
+        if (typeof url === 'undefined') {
+            document.getElementsByClassName('search-button')[0].className += ' fa fa-binoculars';
+        } else {
+            document.getElementsByClassName('search-button')[1].className += ' fa fa-binoculars';
+        }
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"Population": "int","densite": "real","NOM1": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Population = document.createElement("div");
+            div_Population.id = "div_Population";
+            div_Population.className = "slider";
+            document.getElementById("menu").appendChild(div_Population);
+            var lab_Population = document.createElement('div');
+            lab_Population.innerHTML  = 'Population: <span id="val_Population"></span>';
+            lab_Population.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_Population);
+            var reset_Population = document.createElement('div');
+            reset_Population.innerHTML = 'clear filter';
+            reset_Population.className = 'filterlabel';
+            lab_Population.className = 'filterlabel';
+            reset_Population.onclick = function() {
+                sel_Population.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_Population);
+            var sel_Population = document.getElementById('div_Population');
+            noUiSlider.create(sel_Population, {
+                connect: true,
+                start: [1007000, 12641463],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 1007000,
+                max: 12641463
+                }
+            });
+            sel_Population.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_Population = document.getElementById('val_Population');
+            val_Population.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_densite = document.createElement("div");
+            div_densite.id = "div_densite";
+            div_densite.className = "slider";
+            document.getElementById("menu").appendChild(div_densite);
+            var lab_densite = document.createElement('div');
+            lab_densite.innerHTML  = 'densite: <span id="val_densite"></span>';
+            lab_densite.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_densite);
+            var reset_densite = document.createElement('div');
+            reset_densite.innerHTML = 'clear filter';
+            reset_densite.className = 'filterlabel';
+            lab_densite.className = 'filterlabel';
+            reset_densite.onclick = function() {
+                sel_densite.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_densite);
+            var sel_densite = document.getElementById('div_densite');
+            noUiSlider.create(sel_densite, {
+                connect: true,
+                start: [7.361, 1170.835],
+                range: {
+                min: 7.361,
+                max: 1170.835
+                }
+            });
+            sel_densite.noUiSlider.on('update', function (values) {
+            val_densite = document.getElementById('val_densite');
+            val_densite.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_NOM1 = document.createElement('div');
+            div_NOM1.id = "div_NOM1";
+            div_NOM1.className= "filterselect";
+            document.getElementById("menu").appendChild(div_NOM1);
+            sel_NOM1 = document.createElement('select');
+            sel_NOM1.multiple = true;
+            sel_NOM1.size = 10;
+            sel_NOM1.id = "sel_NOM1";
+            var NOM1_options_str = "<option value='' unselected></option>";
+            sel_NOM1.onchange = function(){filterFunc()};
+            NOM1_options_str  += '<option value="NULL">NULL</option>';
+            NOM1_options_str  += '<option value="5e Celpa Kalole/S">5e Celpa Kalole/S</option>';
+            NOM1_options_str  += '<option value="5e Celpa Mikaba">5e Celpa Mikaba</option>';
+            NOM1_options_str  += '<option value="5e Celpa Nyalukungu">5e Celpa Nyalukungu</option>';
+            NOM1_options_str  += '<option value="5eme Celpa Tukumbi">5eme Celpa Tukumbi</option>';
+            NOM1_options_str  += '<option value="5Ème Celpa">5Ème Celpa</option>';
+            NOM1_options_str  += '<option value="8e Cepac">8e Cepac</option>';
+            NOM1_options_str  += '<option value="8Þ CEPAC">8Þ CEPAC</option>';
+            NOM1_options_str  += '<option value="A&apos;amba : Makobola">A&apos;amba : Makobola</option>';
+            NOM1_options_str  += '<option value="ADV Mutiri">ADV Mutiri</option>';
+            NOM1_options_str  += '<option value="Abala">Abala</option>';
+            NOM1_options_str  += '<option value="Abela">Abela</option>';
+            NOM1_options_str  += '<option value="Abeli">Abeli</option>';
+            NOM1_options_str  += '<option value="Afya">Afya</option>';
+            NOM1_options_str  += '<option value="Ajouta Paul">Ajouta Paul</option>';
+            NOM1_options_str  += '<option value="Ake">Ake</option>';
+            NOM1_options_str  += '<option value="Akwele">Akwele</option>';
+            NOM1_options_str  += '<option value="Akyo&apos;A">Akyo&apos;A</option>';
+            NOM1_options_str  += '<option value="Albert Barthel">Albert Barthel</option>';
+            NOM1_options_str  += '<option value="Albi">Albi</option>';
+            NOM1_options_str  += '<option value="Alenga">Alenga</option>';
+            NOM1_options_str  += '<option value="Alimbongo">Alimbongo</option>';
+            NOM1_options_str  += '<option value="Aloya">Aloya</option>';
+            NOM1_options_str  += '<option value="Amani">Amani</option>';
+            NOM1_options_str  += '<option value="Amani Kisungu">Amani Kisungu</option>';
+            NOM1_options_str  += '<option value="Anuarite">Anuarite</option>';
+            NOM1_options_str  += '<option value="Asedewa">Asedewa</option>';
+            NOM1_options_str  += '<option value="Avo">Avo</option>';
+            NOM1_options_str  += '<option value="BCZ de Kalehe">BCZ de Kalehe</option>';
+            NOM1_options_str  += '<option value="BCZ de Kalonge">BCZ de Kalonge</option>';
+            NOM1_options_str  += '<option value="Ba Itere Mbang">Ba Itere Mbang</option>';
+            NOM1_options_str  += '<option value="Ba Kinkono">Ba Kinkono</option>';
+            NOM1_options_str  += '<option value="Ba Kisala">Ba Kisala</option>';
+            NOM1_options_str  += '<option value="Ba Lulau">Ba Lulau</option>';
+            NOM1_options_str  += '<option value="Ba Mosay">Ba Mosay</option>';
+            NOM1_options_str  += '<option value="Ba Nsiengwon">Ba Nsiengwon</option>';
+            NOM1_options_str  += '<option value="Bagana">Bagana</option>';
+            NOM1_options_str  += '<option value="Bakwalumona">Bakwalumona</option>';
+            NOM1_options_str  += '<option value="Bambo">Bambo</option>';
+            NOM1_options_str  += '<option value="Bambu">Bambu</option>';
+            NOM1_options_str  += '<option value="Bambudi">Bambudi</option>';
+            NOM1_options_str  += '<option value="Bampum Cke">Bampum Cke</option>';
+            NOM1_options_str  += '<option value="Bampum Lakenakwa">Bampum Lakenakwa</option>';
+            NOM1_options_str  += '<option value="Banakabale">Banakabale</option>';
+            NOM1_options_str  += '<option value="Bandulu">Bandulu</option>';
+            NOM1_options_str  += '<option value="Bangoye">Bangoye</option>';
+            NOM1_options_str  += '<option value="Bankumuna Ba">Bankumuna Ba</option>';
+            NOM1_options_str  += '<option value="Bansion">Bansion</option>';
+            NOM1_options_str  += '<option value="Banzadi">Banzadi</option>';
+            NOM1_options_str  += '<option value="Baraka">Baraka</option>';
+            NOM1_options_str  += '<option value="Baraka Etat">Baraka Etat</option>';
+            NOM1_options_str  += '<option value="Baraka/Katatwa">Baraka/Katatwa</option>';
+            NOM1_options_str  += '<option value="Basikikela">Basikikela</option>';
+            NOM1_options_str  += '<option value="Bazar/Centre">Bazar/Centre</option>';
+            NOM1_options_str  += '<option value="Bazee">Bazee</option>';
+            NOM1_options_str  += '<option value="Bengi">Bengi</option>';
+            NOM1_options_str  += '<option value="Beni">Beni</option>';
+            NOM1_options_str  += '<option value="Besse">Besse</option>';
+            NOM1_options_str  += '<option value="Biambwe">Biambwe</option>';
+            NOM1_options_str  += '<option value="Bibokoboko 2">Bibokoboko 2</option>';
+            NOM1_options_str  += '<option value="Bibwe">Bibwe</option>';
+            NOM1_options_str  += '<option value="Bien Etre">Bien Etre</option>';
+            NOM1_options_str  += '<option value="Bigombe">Bigombe</option>';
+            NOM1_options_str  += '<option value="Bihambwe">Bihambwe</option>';
+            NOM1_options_str  += '<option value="Bikindwe">Bikindwe</option>';
+            NOM1_options_str  += '<option value="Bikoko">Bikoko</option>';
+            NOM1_options_str  += '<option value="Bikugi">Bikugi</option>';
+            NOM1_options_str  += '<option value="Bilili Centre">Bilili Centre</option>';
+            NOM1_options_str  += '<option value="Bilobilo">Bilobilo</option>';
+            NOM1_options_str  += '<option value="Bingi">Bingi</option>';
+            NOM1_options_str  += '<option value="Bingo">Bingo</option>';
+            NOM1_options_str  += '<option value="Binsanga">Binsanga</option>';
+            NOM1_options_str  += '<option value="Binyangi">Binyangi</option>';
+            NOM1_options_str  += '<option value="Bipisir">Bipisir</option>';
+            NOM1_options_str  += '<option value="Birambizo">Birambizo</option>';
+            NOM1_options_str  += '<option value="Biriba">Biriba</option>';
+            NOM1_options_str  += '<option value="Biriko">Biriko</option>';
+            NOM1_options_str  += '<option value="Birundule">Birundule</option>';
+            NOM1_options_str  += '<option value="Biruwe">Biruwe</option>';
+            NOM1_options_str  += '<option value="Bisey Nord II">Bisey Nord II</option>';
+            NOM1_options_str  += '<option value="Bishange">Bishange</option>';
+            NOM1_options_str  += '<option value="Bishusha">Bishusha</option>';
+            NOM1_options_str  += '<option value="Bismillah Kalemire">Bismillah Kalemire</option>';
+            NOM1_options_str  += '<option value="Bitale">Bitale</option>';
+            NOM1_options_str  += '<option value="Bitobolo">Bitobolo</option>';
+            NOM1_options_str  += '<option value="Bitolo">Bitolo</option>';
+            NOM1_options_str  += '<option value="Bitonga">Bitonga</option>';
+            NOM1_options_str  += '<option value="Bobandana">Bobandana</option>';
+            NOM1_options_str  += '<option value="Bodwa">Bodwa</option>';
+            NOM1_options_str  += '<option value="Boikene">Boikene</option>';
+            NOM1_options_str  += '<option value="Bondo Mubiey">Bondo Mubiey</option>';
+            NOM1_options_str  += '<option value="Bonga">Bonga</option>';
+            NOM1_options_str  += '<option value="Bora Uzima">Bora Uzima</option>';
+            NOM1_options_str  += '<option value="Bosembo">Bosembo</option>';
+            NOM1_options_str  += '<option value="Buabo">Buabo</option>';
+            NOM1_options_str  += '<option value="Bubala">Bubala</option>';
+            NOM1_options_str  += '<option value="Buciro">Buciro</option>';
+            NOM1_options_str  += '<option value="Bugarula">Bugarula</option>';
+            NOM1_options_str  += '<option value="Bughumirya">Bughumirya</option>';
+            NOM1_options_str  += '<option value="Buguri">Buguri</option>';
+            NOM1_options_str  += '<option value="Bugusa">Bugusa</option>';
+            NOM1_options_str  += '<option value="Buhamba">Buhamba</option>';
+            NOM1_options_str  += '<option value="Buheba">Buheba</option>';
+            NOM1_options_str  += '<option value="Buhimba">Buhimba</option>';
+            NOM1_options_str  += '<option value="Buhondwa">Buhondwa</option>';
+            NOM1_options_str  += '<option value="Buhumba">Buhumba</option>';
+            NOM1_options_str  += '<option value="Buhyangali">Buhyangali</option>';
+            NOM1_options_str  += '<option value="Bujovu">Bujovu</option>';
+            NOM1_options_str  += '<option value="Bukama">Bukama</option>';
+            NOM1_options_str  += '<option value="Bukanga Centre">Bukanga Centre</option>';
+            NOM1_options_str  += '<option value="Bukonde">Bukonde</option>';
+            NOM1_options_str  += '<option value="Bukondi">Bukondi</option>';
+            NOM1_options_str  += '<option value="Bukuchu">Bukuchu</option>';
+            NOM1_options_str  += '<option value="Bukumbi">Bukumbi</option>';
+            NOM1_options_str  += '<option value="Bukumbirire">Bukumbirire</option>';
+            NOM1_options_str  += '<option value="Bukumbirwa">Bukumbirwa</option>';
+            NOM1_options_str  += '<option value="Bukununu">Bukununu</option>';
+            NOM1_options_str  += '<option value="Bukwon Mambwen">Bukwon Mambwen</option>';
+            NOM1_options_str  += '<option value="Bulambo">Bulambo</option>';
+            NOM1_options_str  += '<option value="Bulegeyi">Bulegeyi</option>';
+            NOM1_options_str  += '<option value="Bulema">Bulema</option>';
+            NOM1_options_str  += '<option value="Bulende">Bulende</option>';
+            NOM1_options_str  += '<option value="Bulenga">Bulenga</option>';
+            NOM1_options_str  += '<option value="Bulengera">Bulengera</option>';
+            NOM1_options_str  += '<option value="Bulinda">Bulinda</option>';
+            NOM1_options_str  += '<option value="Bulindi">Bulindi</option>';
+            NOM1_options_str  += '<option value="Bulindwe">Bulindwe</option>';
+            NOM1_options_str  += '<option value="Bulumbu">Bulumbu</option>';
+            NOM1_options_str  += '<option value="Bulungu">Bulungu</option>';
+            NOM1_options_str  += '<option value="Bulungu Cbco">Bulungu Cbco</option>';
+            NOM1_options_str  += '<option value="Bulungu Muyombo">Bulungu Muyombo</option>';
+            NOM1_options_str  += '<option value="Bulungu Nsele">Bulungu Nsele</option>';
+            NOM1_options_str  += '<option value="Bulungu Tshom">Bulungu Tshom</option>';
+            NOM1_options_str  += '<option value="Bulwem">Bulwem</option>';
+            NOM1_options_str  += '<option value="Bulwem Mukongo">Bulwem Mukongo</option>';
+            NOM1_options_str  += '<option value="Bumba Kikweta">Bumba Kikweta</option>';
+            NOM1_options_str  += '<option value="Bumoga">Bumoga</option>';
+            NOM1_options_str  += '<option value="Bunagana">Bunagana</option>';
+            NOM1_options_str  += '<option value="Bunande">Bunande</option>';
+            NOM1_options_str  += '<option value="Bungalama">Bungalama</option>';
+            NOM1_options_str  += '<option value="Bunji">Bunji</option>';
+            NOM1_options_str  += '<option value="Bunyakiri">Bunyakiri</option>';
+            NOM1_options_str  += '<option value="Bunyatenge">Bunyatenge</option>';
+            NOM1_options_str  += '<option value="Bunyuka">Bunyuka</option>';
+            NOM1_options_str  += '<option value="Bunza">Bunza</option>';
+            NOM1_options_str  += '<option value="Buramba">Buramba</option>';
+            NOM1_options_str  += '<option value="Buroha">Buroha</option>';
+            NOM1_options_str  += '<option value="Burunga">Burunga</option>';
+            NOM1_options_str  += '<option value="Burusi">Burusi</option>';
+            NOM1_options_str  += '<option value="Busamba">Busamba</option>';
+            NOM1_options_str  += '<option value="Buseke">Buseke</option>';
+            NOM1_options_str  += '<option value="Busekera">Busekera</option>';
+            NOM1_options_str  += '<option value="Bushegera">Bushegera</option>';
+            NOM1_options_str  += '<option value="Bushira">Bushira</option>';
+            NOM1_options_str  += '<option value="Bushonga">Bushonga</option>';
+            NOM1_options_str  += '<option value="Bushuba">Bushuba</option>';
+            NOM1_options_str  += '<option value="Bushuju">Bushuju</option>';
+            NOM1_options_str  += '<option value="Bushusha">Bushusha</option>';
+            NOM1_options_str  += '<option value="Bushushu">Bushushu</option>';
+            NOM1_options_str  += '<option value="Busumba">Busumba</option>';
+            NOM1_options_str  += '<option value="Busurungi">Busurungi</option>';
+            NOM1_options_str  += '<option value="Butaho">Butaho</option>';
+            NOM1_options_str  += '<option value="Butale Kikumba">Butale Kikumba</option>';
+            NOM1_options_str  += '<option value="Butare">Butare</option>';
+            NOM1_options_str  += '<option value="Butembo">Butembo</option>';
+            NOM1_options_str  += '<option value="Butetegele">Butetegele</option>';
+            NOM1_options_str  += '<option value="Butezi">Butezi</option>';
+            NOM1_options_str  += '<option value="Butsili">Butsili</option>';
+            NOM1_options_str  += '<option value="Butuhe">Butuhe</option>';
+            NOM1_options_str  += '<option value="Butumba">Butumba</option>';
+            NOM1_options_str  += '<option value="Butumbe">Butumbe</option>';
+            NOM1_options_str  += '<option value="Buturande">Buturande</option>';
+            NOM1_options_str  += '<option value="Bututa">Bututa</option>';
+            NOM1_options_str  += '<option value="Buyinga">Buyinga</option>';
+            NOM1_options_str  += '<option value="Buyumbu">Buyumbu</option>';
+            NOM1_options_str  += '<option value="Buzamuka">Buzamuka</option>';
+            NOM1_options_str  += '<option value="Bwakanda">Bwakanda</option>';
+            NOM1_options_str  += '<option value="Bwako">Bwako</option>';
+            NOM1_options_str  += '<option value="Bwala">Bwala</option>';
+            NOM1_options_str  += '<option value="Bwando">Bwando</option>';
+            NOM1_options_str  += '<option value="Bwasinge">Bwasinge</option>';
+            NOM1_options_str  += '<option value="Bwatsinge">Bwatsinge</option>';
+            NOM1_options_str  += '<option value="Bwatundu Basongo">Bwatundu Basongo</option>';
+            NOM1_options_str  += '<option value="Bwegera">Bwegera</option>';
+            NOM1_options_str  += '<option value="Bweremana">Bweremana</option>';
+            NOM1_options_str  += '<option value="Bweru">Bweru</option>';
+            NOM1_options_str  += '<option value="Bwesho">Bwesho</option>';
+            NOM1_options_str  += '<option value="Bweteta">Bweteta</option>';
+            NOM1_options_str  += '<option value="Bwina">Bwina</option>';
+            NOM1_options_str  += '<option value="Byangama">Byangama</option>';
+            NOM1_options_str  += '<option value="Byungu">Byungu</option>';
+            NOM1_options_str  += '<option value="Bénédiction">Bénédiction</option>';
+            NOM1_options_str  += '<option value="CBCA">CBCA</option>';
+            NOM1_options_str  += '<option value="CBCA Buramba">CBCA Buramba</option>';
+            NOM1_options_str  += '<option value="CBCA Butembo">CBCA Butembo</option>';
+            NOM1_options_str  += '<option value="CBCA Kibati">CBCA Kibati</option>';
+            NOM1_options_str  += '<option value="CBCA Kikyo">CBCA Kikyo</option>';
+            NOM1_options_str  += '<option value="CBCA/Vitumbi">CBCA/Vitumbi</option>';
+            NOM1_options_str  += '<option value="CBCE Buganza">CBCE Buganza</option>';
+            NOM1_options_str  += '<option value="CBCE Katwiguru">CBCE Katwiguru</option>';
+            NOM1_options_str  += '<option value="CBK Kaseghe">CBK Kaseghe</option>';
+            NOM1_options_str  += '<option value="CCLK">CCLK</option>';
+            NOM1_options_str  += '<option value="CEBCE/ Bambo">CEBCE/ Bambo</option>';
+            NOM1_options_str  += '<option value="CEMEBU">CEMEBU</option>';
+            NOM1_options_str  += '<option value="CHP Heshima Letu">CHP Heshima Letu</option>';
+            NOM1_options_str  += '<option value="CMC ADEPROSA">CMC ADEPROSA</option>';
+            NOM1_options_str  += '<option value="CMC Bwalyana">CMC Bwalyana</option>';
+            NOM1_options_str  += '<option value="CMC IRIS">CMC IRIS</option>';
+            NOM1_options_str  += '<option value="CMC Keveramuke">CMC Keveramuke</option>';
+            NOM1_options_str  += '<option value="CMC Le Roi">CMC Le Roi</option>';
+            NOM1_options_str  += '<option value="CNT Muhila">CNT Muhila</option>';
+            NOM1_options_str  += '<option value="CODEMUCO">CODEMUCO</option>';
+            NOM1_options_str  += '<option value="COODEMUKO">COODEMUKO</option>';
+            NOM1_options_str  += '<option value="COOPAHA">COOPAHA</option>';
+            NOM1_options_str  += '<option value="Camahiri">Camahiri</option>';
+            NOM1_options_str  += '<option value="Camahiru">Camahiru</option>';
+            NOM1_options_str  += '<option value="Camp Cke Manimba">Camp Cke Manimba</option>';
+            NOM1_options_str  += '<option value="Camp Croix Rouge Mokamo">Camp Croix Rouge Mokamo</option>';
+            NOM1_options_str  += '<option value="Camp Hpk Masi">Camp Hpk Masi</option>';
+            NOM1_options_str  += '<option value="Camp Kinkuni">Camp Kinkuni</option>';
+            NOM1_options_str  += '<option value="Camp Mabeka I">Camp Mabeka I</option>';
+            NOM1_options_str  += '<option value="Camp Molila">Camp Molila</option>';
+            NOM1_options_str  += '<option value="Camp PLC Kunga">Camp PLC Kunga</option>';
+            NOM1_options_str  += '<option value="Camps 5 heures">Camps 5 heures</option>';
+            NOM1_options_str  += '<option value="Carmel">Carmel</option>';
+            NOM1_options_str  += '<option value="Casop">Casop</option>';
+            NOM1_options_str  += '<option value="Centre Commercial">Centre Commercial</option>';
+            NOM1_options_str  += '<option value="Centre de santé KASAMA">Centre de santé KASAMA</option>';
+            NOM1_options_str  += '<option value="Centre de santé Katele">Centre de santé Katele</option>';
+            NOM1_options_str  += '<option value="Cepromi">Cepromi</option>';
+            NOM1_options_str  += '<option value="Cercle Médical Ima">Cercle Médical Ima</option>';
+            NOM1_options_str  += '<option value="Chabunda">Chabunda</option>';
+            NOM1_options_str  += '<option value="Chambucha">Chambucha</option>';
+            NOM1_options_str  += '<option value="Chaminunu">Chaminunu</option>';
+            NOM1_options_str  += '<option value="Charité Kisungu">Charité Kisungu</option>';
+            NOM1_options_str  += '<option value="Charité Mat">Charité Mat</option>';
+            NOM1_options_str  += '<option value="Chasi">Chasi</option>';
+            NOM1_options_str  += '<option value="Chega">Chega</option>';
+            NOM1_options_str  += '<option value="Cholobera">Cholobera</option>';
+            NOM1_options_str  += '<option value="Chowe">Chowe</option>';
+            NOM1_options_str  += '<option value="Churuliko">Churuliko</option>';
+            NOM1_options_str  += '<option value="Cibinda">Cibinda</option>';
+            NOM1_options_str  += '<option value="Cifunzi">Cifunzi</option>';
+            NOM1_options_str  += '<option value="Cigiri">Cigiri</option>';
+            NOM1_options_str  += '<option value="Cigoma">Cigoma</option>';
+            NOM1_options_str  += '<option value="Cikonjolo">Cikonjolo</option>';
+            NOM1_options_str  += '<option value="Cimbiro">Cimbiro</option>';
+            NOM1_options_str  += '<option value="Ciriba">Ciriba</option>';
+            NOM1_options_str  += '<option value="Cite Eolo">Cite Eolo</option>';
+            NOM1_options_str  += '<option value="Cite Panu">Cite Panu</option>';
+            NOM1_options_str  += '<option value="Cite Pio Pio">Cite Pio Pio</option>';
+            NOM1_options_str  += '<option value="Clin. Gloria">Clin. Gloria</option>';
+            NOM1_options_str  += '<option value="Clinique Pédiatriq">Clinique Pédiatriq</option>';
+            NOM1_options_str  += '<option value="Coin Lemba">Coin Lemba</option>';
+            NOM1_options_str  += '<option value="Coopevi">Coopevi</option>';
+            NOM1_options_str  += '<option value="Cosa">Cosa</option>';
+            NOM1_options_str  += '<option value="Croix Rouge Chafunda">Croix Rouge Chafunda</option>';
+            NOM1_options_str  += '<option value="Cs Cbco">Cs Cbco</option>';
+            NOM1_options_str  += '<option value="Csm">Csm</option>';
+            NOM1_options_str  += '<option value="DOCS">DOCS</option>';
+            NOM1_options_str  += '<option value="Delina">Delina</option>';
+            NOM1_options_str  += '<option value="Dibaya Lubwe">Dibaya Lubwe</option>';
+            NOM1_options_str  += '<option value="Dibaya Lubwe II">Dibaya Lubwe II</option>';
+            NOM1_options_str  += '<option value="Dibaya Medical">Dibaya Medical</option>';
+            NOM1_options_str  += '<option value="Dibaya Paroisse">Dibaya Paroisse</option>';
+            NOM1_options_str  += '<option value="Dibaya Port">Dibaya Port</option>';
+            NOM1_options_str  += '<option value="Dieu-donnée">Dieu-donnée</option>';
+            NOM1_options_str  += '<option value="Disp. De l&apos;Espoir">Disp. De l&apos;Espoir</option>';
+            NOM1_options_str  += '<option value="Disp. De la Grâce">Disp. De la Grâce</option>';
+            NOM1_options_str  += '<option value="Disp. Gloria">Disp. Gloria</option>';
+            NOM1_options_str  += '<option value="Disp. Le Bon Berge">Disp. Le Bon Berge</option>';
+            NOM1_options_str  += '<option value="Disp. Traditionnel">Disp. Traditionnel</option>';
+            NOM1_options_str  += '<option value="Dispensaire Lazar">Dispensaire Lazar</option>';
+            NOM1_options_str  += '<option value="Dispenssaire privé">Dispenssaire privé</option>';
+            NOM1_options_str  += '<option value="Docs">Docs</option>';
+            NOM1_options_str  += '<option value="Don David">Don David</option>';
+            NOM1_options_str  += '<option value="Don De Dieu">Don De Dieu</option>';
+            NOM1_options_str  += '<option value="Dunda Bac">Dunda Bac</option>';
+            NOM1_options_str  += '<option value="EERA Mutiri">EERA Mutiri</option>';
+            NOM1_options_str  += '<option value="Ebay">Ebay</option>';
+            NOM1_options_str  += '<option value="Ebay Mukungu">Ebay Mukungu</option>';
+            NOM1_options_str  += '<option value="Ebiala Bulangoma">Ebiala Bulangoma</option>';
+            NOM1_options_str  += '<option value="Ebiala Kandolo">Ebiala Kandolo</option>';
+            NOM1_options_str  += '<option value="Ebubu">Ebubu</option>';
+            NOM1_options_str  += '<option value="Ekubi I">Ekubi I</option>';
+            NOM1_options_str  += '<option value="Elanga Nene">Elanga Nene</option>';
+            NOM1_options_str  += '<option value="Emaus">Emaus</option>';
+            NOM1_options_str  += '<option value="Emaüs">Emaüs</option>';
+            NOM1_options_str  += '<option value="Eringeti">Eringeti</option>';
+            NOM1_options_str  += '<option value="Erunga">Erunga</option>';
+            NOM1_options_str  += '<option value="Etea">Etea</option>';
+            NOM1_options_str  += '<option value="Eyene Misenge (Molokay)">Eyene Misenge (Molokay)</option>';
+            NOM1_options_str  += '<option value="Faraja">Faraja</option>';
+            NOM1_options_str  += '<option value="Fendula">Fendula</option>';
+            NOM1_options_str  += '<option value="Fizi">Fizi</option>';
+            NOM1_options_str  += '<option value="Fizi Kilembwe">Fizi Kilembwe</option>';
+            NOM1_options_str  += '<option value="Fula">Fula</option>';
+            NOM1_options_str  += '<option value="Funga">Funga</option>';
+            NOM1_options_str  += '<option value="Garenganze">Garenganze</option>';
+            NOM1_options_str  += '<option value="Garizim Mission">Garizim Mission</option>';
+            NOM1_options_str  += '<option value="Gloria">Gloria</option>';
+            NOM1_options_str  += '<option value="Goma">Goma</option>';
+            NOM1_options_str  += '<option value="Gomba">Gomba</option>';
+            NOM1_options_str  += '<option value="Gracia Fondation">Gracia Fondation</option>';
+            NOM1_options_str  += '<option value="Grefamu">Grefamu</option>';
+            NOM1_options_str  += '<option value="HGR">HGR</option>';
+            NOM1_options_str  += '<option value="HGR Chifunzi/Kalonge">HGR Chifunzi/Kalonge</option>';
+            NOM1_options_str  += '<option value="HGR Congo1">HGR Congo1</option>';
+            NOM1_options_str  += '<option value="HGR Kalehe">HGR Kalehe</option>';
+            NOM1_options_str  += '<option value="Hebron">Hebron</option>';
+            NOM1_options_str  += '<option value="Himbi">Himbi</option>';
+            NOM1_options_str  += '<option value="Hombo">Hombo</option>';
+            NOM1_options_str  += '<option value="Ibanga">Ibanga</option>';
+            NOM1_options_str  += '<option value="Ibinja">Ibinja</option>';
+            NOM1_options_str  += '<option value="Iganda">Iganda</option>';
+            NOM1_options_str  += '<option value="Ignis">Ignis</option>';
+            NOM1_options_str  += '<option value="Ihoka">Ihoka</option>';
+            NOM1_options_str  += '<option value="Ikala">Ikala</option>';
+            NOM1_options_str  += '<option value="Iko">Iko</option>';
+            NOM1_options_str  += '<option value="Ikuvula">Ikuvula</option>';
+            NOM1_options_str  += '<option value="Imani">Imani</option>';
+            NOM1_options_str  += '<option value="Impasi Mikingi">Impasi Mikingi</option>';
+            NOM1_options_str  += '<option value="Impasi Ndung">Impasi Ndung</option>';
+            NOM1_options_str  += '<option value="Intswem">Intswem</option>';
+            NOM1_options_str  += '<option value="Intswem Ebay">Intswem Ebay</option>';
+            NOM1_options_str  += '<option value="Ipamu Mission">Ipamu Mission</option>';
+            NOM1_options_str  += '<option value="Ipanga">Ipanga</option>';
+            NOM1_options_str  += '<option value="Ipuma">Ipuma</option>';
+            NOM1_options_str  += '<option value="Irangi">Irangi</option>';
+            NOM1_options_str  += '<option value="Irundu">Irundu</option>';
+            NOM1_options_str  += '<option value="Isanga Nene">Isanga Nene</option>';
+            NOM1_options_str  += '<option value="Isango">Isango</option>';
+            NOM1_options_str  += '<option value="Isecha">Isecha</option>';
+            NOM1_options_str  += '<option value="Ishasha">Ishasha</option>';
+            NOM1_options_str  += '<option value="Ishovu">Ishovu</option>';
+            NOM1_options_str  += '<option value="Isoga">Isoga</option>';
+            NOM1_options_str  += '<option value="Isonga">Isonga</option>';
+            NOM1_options_str  += '<option value="Iswi St Paul">Iswi St Paul</option>';
+            NOM1_options_str  += '<option value="Itabala">Itabala</option>';
+            NOM1_options_str  += '<option value="Itebero">Itebero</option>';
+            NOM1_options_str  += '<option value="Itere Bifar">Itere Bifar</option>';
+            NOM1_options_str  += '<option value="Itota">Itota</option>';
+            NOM1_options_str  += '<option value="Itula">Itula</option>';
+            NOM1_options_str  += '<option value="Ivang">Ivang</option>';
+            NOM1_options_str  += '<option value="Ivatama">Ivatama</option>';
+            NOM1_options_str  += '<option value="JTN">JTN</option>';
+            NOM1_options_str  += '<option value="Jaku">Jaku</option>';
+            NOM1_options_str  += '<option value="Jehovah Rafa">Jehovah Rafa</option>';
+            NOM1_options_str  += '<option value="Kabalole">Kabalole</option>';
+            NOM1_options_str  += '<option value="Kabamba">Kabamba</option>';
+            NOM1_options_str  += '<option value="Kabase">Kabase</option>';
+            NOM1_options_str  += '<option value="Kabasha">Kabasha</option>';
+            NOM1_options_str  += '<option value="Kabati">Kabati</option>';
+            NOM1_options_str  += '<option value="Kabaya">Kabaya</option>';
+            NOM1_options_str  += '<option value="Kabeba I">Kabeba I</option>';
+            NOM1_options_str  += '<option value="Kabele">Kabele</option>';
+            NOM1_options_str  += '<option value="Kabimba">Kabimba</option>';
+            NOM1_options_str  += '<option value="Kabindula">Kabindula</option>';
+            NOM1_options_str  += '<option value="Kabingo 1">Kabingo 1</option>';
+            NOM1_options_str  += '<option value="Kabingu">Kabingu</option>';
+            NOM1_options_str  += '<option value="Kabizo">Kabizo</option>';
+            NOM1_options_str  += '<option value="Kaboke">Kaboke</option>';
+            NOM1_options_str  += '<option value="Kabombo Bac">Kabombo Bac</option>';
+            NOM1_options_str  += '<option value="Kabombo Bwetu">Kabombo Bwetu</option>';
+            NOM1_options_str  += '<option value="Kabondozi">Kabondozi</option>';
+            NOM1_options_str  += '<option value="Kabonero">Kabonero</option>';
+            NOM1_options_str  += '<option value="Kabongozi">Kabongozi</option>';
+            NOM1_options_str  += '<option value="Kabotoka">Kabotoka</option>';
+            NOM1_options_str  += '<option value="Kabumba">Kabumba</option>';
+            NOM1_options_str  += '<option value="Kabumbe">Kabumbe</option>';
+            NOM1_options_str  += '<option value="Kabuzu">Kabuzu</option>';
+            NOM1_options_str  += '<option value="Kacuba">Kacuba</option>';
+            NOM1_options_str  += '<option value="Kafisha">Kafisha</option>';
+            NOM1_options_str  += '<option value="Kafulo">Kafulo</option>';
+            NOM1_options_str  += '<option value="Kagelia">Kagelia</option>';
+            NOM1_options_str  += '<option value="Kagheri">Kagheri</option>';
+            NOM1_options_str  += '<option value="Kaghuli">Kaghuli</option>';
+            NOM1_options_str  += '<option value="Kagolomba">Kagolomba</option>';
+            NOM1_options_str  += '<option value="Kagurube">Kagurube</option>';
+            NOM1_options_str  += '<option value="Kahamba">Kahamba</option>';
+            NOM1_options_str  += '<option value="Kahanda">Kahanda</option>';
+            NOM1_options_str  += '<option value="Kahanga">Kahanga</option>';
+            NOM1_options_str  += '<option value="Kahembe">Kahembe</option>';
+            NOM1_options_str  += '<option value="Kahita">Kahita</option>';
+            NOM1_options_str  += '<option value="Kailenge">Kailenge</option>';
+            NOM1_options_str  += '<option value="Kakaleka">Kakaleka</option>';
+            NOM1_options_str  += '<option value="Kakemenge">Kakemenge</option>';
+            NOM1_options_str  += '<option value="Kakenge 2">Kakenge 2</option>';
+            NOM1_options_str  += '<option value="Kakomba">Kakomba</option>';
+            NOM1_options_str  += '<option value="Kakombe">Kakombe</option>';
+            NOM1_options_str  += '<option value="Kakozwa">Kakozwa</option>';
+            NOM1_options_str  += '<option value="Kakuku">Kakuku</option>';
+            NOM1_options_str  += '<option value="Kakumba">Kakumba</option>';
+            NOM1_options_str  += '<option value="Kakumbu">Kakumbu</option>';
+            NOM1_options_str  += '<option value="Kakunda">Kakunda</option>';
+            NOM1_options_str  += '<option value="Kakungu">Kakungu</option>';
+            NOM1_options_str  += '<option value="Kakutya I">Kakutya I</option>';
+            NOM1_options_str  += '<option value="Kakutya III">Kakutya III</option>';
+            NOM1_options_str  += '<option value="Kakutyaii">Kakutyaii</option>';
+            NOM1_options_str  += '<option value="Kalanganda">Kalanganda</option>';
+            NOM1_options_str  += '<option value="Kalehe">Kalehe</option>';
+            NOM1_options_str  += '<option value="Kalemba">Kalemba</option>';
+            NOM1_options_str  += '<option value="Kalembe">Kalembe</option>';
+            NOM1_options_str  += '<option value="Kalembo">Kalembo</option>';
+            NOM1_options_str  += '<option value="Kalengehya">Kalengehya</option>';
+            NOM1_options_str  += '<option value="Kalengera">Kalengera</option>';
+            NOM1_options_str  += '<option value="Kalere">Kalere</option>';
+            NOM1_options_str  += '<option value="Kalima">Kalima</option>';
+            NOM1_options_str  += '<option value="Kalimba">Kalimba</option>';
+            NOM1_options_str  += '<option value="Kalimu">Kalimu</option>';
+            NOM1_options_str  += '<option value="Kalingi">Kalingi</option>';
+            NOM1_options_str  += '<option value="Kalivuli">Kalivuli</option>';
+            NOM1_options_str  += '<option value="Kalo">Kalo</option>';
+            NOM1_options_str  += '<option value="Kalole">Kalole</option>';
+            NOM1_options_str  += '<option value="Kalole Catholique">Kalole Catholique</option>';
+            NOM1_options_str  += '<option value="Kalole I">Kalole I</option>';
+            NOM1_options_str  += '<option value="Kalonda Beach">Kalonda Beach</option>';
+            NOM1_options_str  += '<option value="Kalonda Pont">Kalonda Pont</option>';
+            NOM1_options_str  += '<option value="Kalonge">Kalonge</option>';
+            NOM1_options_str  += '<option value="Kalongo">Kalongo</option>';
+            NOM1_options_str  += '<option value="Kalundja">Kalundja</option>';
+            NOM1_options_str  += '<option value="Kalundu">Kalundu</option>';
+            NOM1_options_str  += '<option value="Kalunguta">Kalunguta</option>';
+            NOM1_options_str  += '<option value="Kamagega">Kamagega</option>';
+            NOM1_options_str  += '<option value="Kamandi">Kamandi</option>';
+            NOM1_options_str  += '<option value="Kamango">Kamango</option>';
+            NOM1_options_str  += '<option value="Kambau">Kambau</option>';
+            NOM1_options_str  += '<option value="Kambuli">Kambuli</option>';
+            NOM1_options_str  += '<option value="Kambumba">Kambumba</option>';
+            NOM1_options_str  += '<option value="Kamena">Kamena</option>';
+            NOM1_options_str  += '<option value="Kamole">Kamole</option>';
+            NOM1_options_str  += '<option value="Kamonyi">Kamonyi</option>';
+            NOM1_options_str  += '<option value="Kamoto">Kamoto</option>';
+            NOM1_options_str  += '<option value="Kampela">Kampela</option>';
+            NOM1_options_str  += '<option value="Kampungu">Kampungu</option>';
+            NOM1_options_str  += '<option value="Kampunzu">Kampunzu</option>';
+            NOM1_options_str  += '<option value="Kamundala I">Kamundala I</option>';
+            NOM1_options_str  += '<option value="Kananda">Kananda</option>';
+            NOM1_options_str  += '<option value="Kandale">Kandale</option>';
+            NOM1_options_str  += '<option value="Kandolo">Kandolo</option>';
+            NOM1_options_str  += '<option value="Kandolo/ Mabila">Kandolo/ Mabila</option>';
+            NOM1_options_str  += '<option value="Kanga">Kanga</option>';
+            NOM1_options_str  += '<option value="Kangela">Kangela</option>';
+            NOM1_options_str  += '<option value="Kangele">Kangele</option>';
+            NOM1_options_str  += '<option value="Kangubanguba">Kangubanguba</option>';
+            NOM1_options_str  += '<option value="Kanguli">Kanguli</option>';
+            NOM1_options_str  += '<option value="Kangumbu">Kangumbu</option>';
+            NOM1_options_str  += '<option value="Kanika">Kanika</option>';
+            NOM1_options_str  += '<option value="Kaniro">Kaniro</option>';
+            NOM1_options_str  += '<option value="Kanune">Kanune</option>';
+            NOM1_options_str  += '<option value="Kanyabayonga">Kanyabayonga</option>';
+            NOM1_options_str  += '<option value="Kanyangwe">Kanyangwe</option>';
+            NOM1_options_str  += '<option value="Kanyaruchinya">Kanyaruchinya</option>';
+            NOM1_options_str  += '<option value="Kanyatsi">Kanyatsi</option>';
+            NOM1_options_str  += '<option value="Kanyihunga">Kanyihunga</option>';
+            NOM1_options_str  += '<option value="Kanza">Kanza</option>';
+            NOM1_options_str  += '<option value="Kanzanza">Kanzanza</option>';
+            NOM1_options_str  += '<option value="Kapampa">Kapampa</option>';
+            NOM1_options_str  += '<option value="Kapela">Kapela</option>';
+            NOM1_options_str  += '<option value="Karali">Karali</option>';
+            NOM1_options_str  += '<option value="Karambi">Karambi</option>';
+            NOM1_options_str  += '<option value="Karango">Karango</option>';
+            NOM1_options_str  += '<option value="Karhala">Karhala</option>';
+            NOM1_options_str  += '<option value="Karhendezi">Karhendezi</option>';
+            NOM1_options_str  += '<option value="Karhundu">Karhundu</option>';
+            NOM1_options_str  += '<option value="Karisimbi">Karisimbi</option>';
+            NOM1_options_str  += '<option value="Karonja">Karonja</option>';
+            NOM1_options_str  += '<option value="Karuba">Karuba</option>';
+            NOM1_options_str  += '<option value="Kasa Mission Catholique">Kasa Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Kasaba">Kasaba</option>';
+            NOM1_options_str  += '<option value="Kasabinyole">Kasabinyole</option>';
+            NOM1_options_str  += '<option value="Kasakwa">Kasakwa</option>';
+            NOM1_options_str  += '<option value="Kasalala">Kasalala</option>';
+            NOM1_options_str  += '<option value="Kasambirio">Kasambirio</option>';
+            NOM1_options_str  += '<option value="Kasando">Kasando</option>';
+            NOM1_options_str  += '<option value="Kasanga">Kasanga</option>';
+            NOM1_options_str  += '<option value="Kasangunda">Kasangunda</option>';
+            NOM1_options_str  += '<option value="Kasay">Kasay</option>';
+            NOM1_options_str  += '<option value="Kasebere">Kasebere</option>';
+            NOM1_options_str  += '<option value="Kaseghe">Kaseghe</option>';
+            NOM1_options_str  += '<option value="Kaseke">Kaseke</option>';
+            NOM1_options_str  += '<option value="Kaseme">Kaseme</option>';
+            NOM1_options_str  += '<option value="Kasenga">Kasenga</option>';
+            NOM1_options_str  += '<option value="Kasesa">Kasesa</option>';
+            NOM1_options_str  += '<option value="Kasetuka">Kasetuka</option>';
+            NOM1_options_str  += '<option value="Kashadu">Kashadu</option>';
+            NOM1_options_str  += '<option value="Kashalira">Kashalira</option>';
+            NOM1_options_str  += '<option value="Kashebere">Kashebere</option>';
+            NOM1_options_str  += '<option value="Kasheke">Kasheke</option>';
+            NOM1_options_str  += '<option value="Kashesha">Kashesha</option>';
+            NOM1_options_str  += '<option value="Kashuga">Kashuga</option>';
+            NOM1_options_str  += '<option value="Kasihe">Kasihe</option>';
+            NOM1_options_str  += '<option value="Kasika">Kasika</option>';
+            NOM1_options_str  += '<option value="Kasima">Kasima</option>';
+            NOM1_options_str  += '<option value="Kasinga">Kasinga</option>';
+            NOM1_options_str  += '<option value="Kasinzwe">Kasinzwe</option>';
+            NOM1_options_str  += '<option value="Kasisi">Kasisi</option>';
+            NOM1_options_str  += '<option value="Kasitu">Kasitu</option>';
+            NOM1_options_str  += '<option value="Kasoko">Kasoko</option>';
+            NOM1_options_str  += '<option value="Kasongwere">Kasongwere</option>';
+            NOM1_options_str  += '<option value="Kassa">Kassa</option>';
+            NOM1_options_str  += '<option value="Kasugho">Kasugho</option>';
+            NOM1_options_str  += '<option value="Kasuka">Kasuka</option>';
+            NOM1_options_str  += '<option value="Katale">Katale</option>';
+            NOM1_options_str  += '<option value="Katambwe">Katambwe</option>';
+            NOM1_options_str  += '<option value="Katanda">Katanda</option>';
+            NOM1_options_str  += '<option value="Katanga">Katanga</option>';
+            NOM1_options_str  += '<option value="Katekama">Katekama</option>';
+            NOM1_options_str  += '<option value="Katindo">Katindo</option>';
+            NOM1_options_str  += '<option value="Katiri">Katiri</option>';
+            NOM1_options_str  += '<option value="Katolo">Katolo</option>';
+            NOM1_options_str  += '<option value="Katolu">Katolu</option>';
+            NOM1_options_str  += '<option value="Katongo">Katongo</option>';
+            NOM1_options_str  += '<option value="Katoro">Katoro</option>';
+            NOM1_options_str  += '<option value="Katoyi">Katoyi</option>';
+            NOM1_options_str  += '<option value="Katoyi 2">Katoyi 2</option>';
+            NOM1_options_str  += '<option value="Katsiru">Katsiru</option>';
+            NOM1_options_str  += '<option value="Katumbi">Katumbi</option>';
+            NOM1_options_str  += '<option value="Katuna">Katuna</option>';
+            NOM1_options_str  += '<option value="Katuunda">Katuunda</option>';
+            NOM1_options_str  += '<option value="Katwa">Katwa</option>';
+            NOM1_options_str  += '<option value="Katwiguru">Katwiguru</option>';
+            NOM1_options_str  += '<option value="Kaundju">Kaundju</option>';
+            NOM1_options_str  += '<option value="Kausa">Kausa</option>';
+            NOM1_options_str  += '<option value="Kavimvira">Kavimvira</option>';
+            NOM1_options_str  += '<option value="Kavisi">Kavisi</option>';
+            NOM1_options_str  += '<option value="Kavuhir!iro">Kavuhir!iro</option>';
+            NOM1_options_str  += '<option value="Kavumba">Kavumba</option>';
+            NOM1_options_str  += '<option value="Kawera">Kawera</option>';
+            NOM1_options_str  += '<option value="Kayeye">Kayeye</option>';
+            NOM1_options_str  += '<option value="Kayna">Kayna</option>';
+            NOM1_options_str  += '<option value="Kayuyu">Kayuyu</option>';
+            NOM1_options_str  += '<option value="Kaza Roho">Kaza Roho</option>';
+            NOM1_options_str  += '<option value="Kazamba Pindi">Kazamba Pindi</option>';
+            NOM1_options_str  += '<option value="Kazamba Wanga">Kazamba Wanga</option>';
+            NOM1_options_str  += '<option value="Kazinga">Kazinga</option>';
+            NOM1_options_str  += '<option value="Kazuba">Kazuba</option>';
+            NOM1_options_str  += '<option value="Kazuza">Kazuza</option>';
+            NOM1_options_str  += '<option value="Kenene">Kenene</option>';
+            NOM1_options_str  += '<option value="Kenye">Kenye</option>';
+            NOM1_options_str  += '<option value="Keshero">Keshero</option>';
+            NOM1_options_str  += '<option value="Kia Kia I">Kia Kia I</option>';
+            NOM1_options_str  += '<option value="Kia Kia II">Kia Kia II</option>';
+            NOM1_options_str  += '<option value="Kiamfu II">Kiamfu II</option>';
+            NOM1_options_str  += '<option value="Kiamfu Mukono">Kiamfu Mukono</option>';
+            NOM1_options_str  += '<option value="Kianga Musenge">Kianga Musenge</option>';
+            NOM1_options_str  += '<option value="Kibabi">Kibabi</option>';
+            NOM1_options_str  += '<option value="Kibala">Kibala</option>';
+            NOM1_options_str  += '<option value="Kibamba">Kibamba</option>';
+            NOM1_options_str  += '<option value="Kibanda">Kibanda</option>';
+            NOM1_options_str  += '<option value="Kibangu">Kibangu</option>';
+            NOM1_options_str  += '<option value="Kibarizo">Kibarizo</option>';
+            NOM1_options_str  += '<option value="Kibati">Kibati</option>';
+            NOM1_options_str  += '<option value="Kibe">Kibe</option>';
+            NOM1_options_str  += '<option value="Kibenge">Kibenge</option>';
+            NOM1_options_str  += '<option value="Kibila">Kibila</option>';
+            NOM1_options_str  += '<option value="Kibingo">Kibingo</option>';
+            NOM1_options_str  += '<option value="Kibirizi">Kibirizi</option>';
+            NOM1_options_str  += '<option value="Kibolongo">Kibolongo</option>';
+            NOM1_options_str  += '<option value="Kibondwe">Kibondwe</option>';
+            NOM1_options_str  += '<option value="Kibua">Kibua</option>';
+            NOM1_options_str  += '<option value="Kibumba">Kibumba</option>';
+            NOM1_options_str  += '<option value="Kibundila">Kibundila</option>';
+            NOM1_options_str  += '<option value="Kibungu">Kibungu</option>';
+            NOM1_options_str  += '<option value="Kibututu">Kibututu</option>';
+            NOM1_options_str  += '<option value="Kibwadu">Kibwadu</option>';
+            NOM1_options_str  += '<option value="Kibwanga">Kibwanga</option>';
+            NOM1_options_str  += '<option value="Kibwe">Kibwe</option>';
+            NOM1_options_str  += '<option value="Kichanga">Kichanga</option>';
+            NOM1_options_str  += '<option value="Kidodobo">Kidodobo</option>';
+            NOM1_options_str  += '<option value="Kifunga Centre">Kifunga Centre</option>';
+            NOM1_options_str  += '<option value="Kifunza">Kifunza</option>';
+            NOM1_options_str  += '<option value="Kighali">Kighali</option>';
+            NOM1_options_str  += '<option value="Kigoma">Kigoma</option>';
+            NOM1_options_str  += '<option value="Kigongo">Kigongo</option>';
+            NOM1_options_str  += '<option value="Kigulube">Kigulube</option>';
+            NOM1_options_str  += '<option value="Kigurwe">Kigurwe</option>';
+            NOM1_options_str  += '<option value="Kihande">Kihande</option>';
+            NOM1_options_str  += '<option value="Kiharo">Kiharo</option>';
+            NOM1_options_str  += '<option value="Kihate">Kihate</option>';
+            NOM1_options_str  += '<option value="Kihembwe">Kihembwe</option>';
+            NOM1_options_str  += '<option value="Kihindo">Kihindo</option>';
+            NOM1_options_str  += '<option value="Kihinga">Kihinga</option>';
+            NOM1_options_str  += '<option value="Kihungwe">Kihungwe</option>';
+            NOM1_options_str  += '<option value="Kikamba">Kikamba</option>';
+            NOM1_options_str  += '<option value="Kikanga I">Kikanga I</option>';
+            NOM1_options_str  += '<option value="Kikingi">Kikingi</option>';
+            NOM1_options_str  += '<option value="Kikobo">Kikobo</option>';
+            NOM1_options_str  += '<option value="Kikonde">Kikonde</option>';
+            NOM1_options_str  += '<option value="Kikongo Village">Kikongo Village</option>';
+            NOM1_options_str  += '<option value="Kikuku">Kikuku</option>';
+            NOM1_options_str  += '<option value="Kikungu">Kikungu</option>';
+            NOM1_options_str  += '<option value="Kikungwa">Kikungwa</option>';
+            NOM1_options_str  += '<option value="Kikuni">Kikuni</option>';
+            NOM1_options_str  += '<option value="Kikura">Kikura</option>';
+            NOM1_options_str  += '<option value="Kikwit Mubwa">Kikwit Mubwa</option>';
+            NOM1_options_str  += '<option value="Kikyo">Kikyo</option>';
+            NOM1_options_str  += '<option value="Kilambo">Kilambo</option>';
+            NOM1_options_str  += '<option value="Kilebecha">Kilebecha</option>';
+            NOM1_options_str  += '<option value="Kilonge">Kilonge</option>';
+            NOM1_options_str  += '<option value="Kilumbi">Kilumbi</option>';
+            NOM1_options_str  += '<option value="Kilunda Mayenga">Kilunda Mayenga</option>';
+            NOM1_options_str  += '<option value="Kimalamungo">Kimalamungo</option>';
+            NOM1_options_str  += '<option value="Kimamfu">Kimamfu</option>';
+            NOM1_options_str  += '<option value="Kimanga">Kimanga</option>';
+            NOM1_options_str  += '<option value="Kimbala Bwibula">Kimbala Bwibula</option>';
+            NOM1_options_str  += '<option value="Kimbanguiste">Kimbanguiste</option>';
+            NOM1_options_str  += '<option value="Kimbata I">Kimbata I</option>';
+            NOM1_options_str  += '<option value="Kimbau Lulungu">Kimbau Lulungu</option>';
+            NOM1_options_str  += '<option value="Kimbembo II">Kimbembo II</option>';
+            NOM1_options_str  += '<option value="Kimbimbi">Kimbimbi</option>';
+            NOM1_options_str  += '<option value="Kimbinga Village">Kimbinga Village</option>';
+            NOM1_options_str  += '<option value="Kimbodila">Kimbodila</option>';
+            NOM1_options_str  += '<option value="Kimbondi">Kimbondi</option>';
+            NOM1_options_str  += '<option value="Kimbondi Sud">Kimbondi Sud</option>';
+            NOM1_options_str  += '<option value="Kimbulu">Kimbulu</option>';
+            NOM1_options_str  += '<option value="Kimburi">Kimburi</option>';
+            NOM1_options_str  += '<option value="Kimbwayamu">Kimbwayamu</option>';
+            NOM1_options_str  += '<option value="Kimolo">Kimolo</option>';
+            NOM1_options_str  += '<option value="Kimomfu Hpk">Kimomfu Hpk</option>';
+            NOM1_options_str  += '<option value="Kimpanga Mayele Ntangu">Kimpanga Mayele Ntangu</option>';
+            NOM1_options_str  += '<option value="Kimputu Cs">Kimputu Cs</option>';
+            NOM1_options_str  += '<option value="Kimputu Mission Catholique">Kimputu Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Kimua">Kimua</option>';
+            NOM1_options_str  += '<option value="Kimwanza">Kimwanza</option>';
+            NOM1_options_str  += '<option value="Kimwanza Boma Poste">Kimwanza Boma Poste</option>';
+            NOM1_options_str  += '<option value="Kimwilu Kuba">Kimwilu Kuba</option>';
+            NOM1_options_str  += '<option value="Kina Kaboba I">Kina Kaboba I</option>';
+            NOM1_options_str  += '<option value="Kindambi">Kindambi</option>';
+            NOM1_options_str  += '<option value="Kindinga Centre">Kindinga Centre</option>';
+            NOM1_options_str  += '<option value="Kindwa">Kindwa</option>';
+            NOM1_options_str  += '<option value="Kingani">Kingani</option>';
+            NOM1_options_str  += '<option value="Kingi">Kingi</option>';
+            NOM1_options_str  += '<option value="Kingoma">Kingoma</option>';
+            NOM1_options_str  += '<option value="Kingombe">Kingombe</option>';
+            NOM1_options_str  += '<option value="Kingondi Muzengo">Kingondi Muzengo</option>';
+            NOM1_options_str  += '<option value="Kingonzi I">Kingonzi I</option>';
+            NOM1_options_str  += '<option value="Kingundu">Kingundu</option>';
+            NOM1_options_str  += '<option value="Kiniezire">Kiniezire</option>';
+            NOM1_options_str  += '<option value="Kintama">Kintama</option>';
+            NOM1_options_str  += '<option value="Kintswa Mfinda">Kintswa Mfinda</option>';
+            NOM1_options_str  += '<option value="Kintswa Nseke">Kintswa Nseke</option>';
+            NOM1_options_str  += '<option value="Kintwala">Kintwala</option>';
+            NOM1_options_str  += '<option value="Kinyandonyi">Kinyandonyi</option>';
+            NOM1_options_str  += '<option value="Kinzamba I">Kinzamba I</option>';
+            NOM1_options_str  += '<option value="Kinzamba Mbala">Kinzamba Mbala</option>';
+            NOM1_options_str  += '<option value="Kinzanda">Kinzanda</option>';
+            NOM1_options_str  += '<option value="Kinzenga">Kinzenga</option>';
+            NOM1_options_str  += '<option value="Kinzenzengo">Kinzenzengo</option>';
+            NOM1_options_str  += '<option value="Kinziki">Kinziki</option>';
+            NOM1_options_str  += '<option value="Kio Poste">Kio Poste</option>';
+            NOM1_options_str  += '<option value="Kipalanga Tenzi">Kipalanga Tenzi</option>';
+            NOM1_options_str  += '<option value="Kipanda">Kipanda</option>';
+            NOM1_options_str  += '<option value="Kipasi">Kipasi</option>';
+            NOM1_options_str  += '<option value="Kipata Mabula Bula">Kipata Mabula Bula</option>';
+            NOM1_options_str  += '<option value="Kipata Mission">Kipata Mission</option>';
+            NOM1_options_str  += '<option value="Kipata Mususu">Kipata Mususu</option>';
+            NOM1_options_str  += '<option value="Kipembe">Kipembe</option>';
+            NOM1_options_str  += '<option value="Kipese">Kipese</option>';
+            NOM1_options_str  += '<option value="Kipwanga Cs">Kipwanga Cs</option>';
+            NOM1_options_str  += '<option value="Kirecha">Kirecha</option>';
+            NOM1_options_str  += '<option value="Kiriama">Kiriama</option>';
+            NOM1_options_str  += '<option value="Kiribata">Kiribata</option>';
+            NOM1_options_str  += '<option value="Kiribunda">Kiribunda</option>';
+            NOM1_options_str  += '<option value="Kirikiri">Kirikiri</option>';
+            NOM1_options_str  += '<option value="Kirima">Kirima</option>';
+            NOM1_options_str  += '<option value="Kiringa">Kiringa</option>';
+            NOM1_options_str  += '<option value="Kiriva">Kiriva</option>';
+            NOM1_options_str  += '<option value="Kirolirwe">Kirolirwe</option>';
+            NOM1_options_str  += '<option value="Kirotshe">Kirotshe</option>';
+            NOM1_options_str  += '<option value="Kirumba">Kirumba</option>';
+            NOM1_options_str  += '<option value="Kirumbu">Kirumbu</option>';
+            NOM1_options_str  += '<option value="Kirungo">Kirungo</option>';
+            NOM1_options_str  += '<option value="Kisaka">Kisaka</option>';
+            NOM1_options_str  += '<option value="Kisalala">Kisalala</option>';
+            NOM1_options_str  += '<option value="Kisanga">Kisanga</option>';
+            NOM1_options_str  += '<option value="Kisangani">Kisangani</option>';
+            NOM1_options_str  += '<option value="Kisani">Kisani</option>';
+            NOM1_options_str  += '<option value="Kiseguru">Kiseguru</option>';
+            NOM1_options_str  += '<option value="Kisembo">Kisembo</option>';
+            NOM1_options_str  += '<option value="Kishanga">Kishanga</option>';
+            NOM1_options_str  += '<option value="Kisharo">Kisharo</option>';
+            NOM1_options_str  += '<option value="Kishenyi">Kishenyi</option>';
+            NOM1_options_str  += '<option value="Kishishe">Kishishe</option>';
+            NOM1_options_str  += '<option value="Kishula">Kishula</option>';
+            NOM1_options_str  += '<option value="Kishumbu">Kishumbu</option>';
+            NOM1_options_str  += '<option value="Kisima">Kisima</option>';
+            NOM1_options_str  += '<option value="Kisingiri">Kisingiri</option>';
+            NOM1_options_str  += '<option value="Kisitu">Kisitu</option>';
+            NOM1_options_str  += '<option value="Kisiza">Kisiza</option>';
+            NOM1_options_str  += '<option value="Kisokwe">Kisokwe</option>';
+            NOM1_options_str  += '<option value="Kisolu">Kisolu</option>';
+            NOM1_options_str  += '<option value="Kisombe">Kisombe</option>';
+            NOM1_options_str  += '<option value="Kisubi">Kisubi</option>';
+            NOM1_options_str  += '<option value="Kitahuha">Kitahuha</option>';
+            NOM1_options_str  += '<option value="Kitala">Kitala</option>';
+            NOM1_options_str  += '<option value="Kitambo Poste">Kitambo Poste</option>';
+            NOM1_options_str  += '<option value="Kitangi">Kitangi</option>';
+            NOM1_options_str  += '<option value="Kitaviro">Kitaviro</option>';
+            NOM1_options_str  += '<option value="Kitembe">Kitembe</option>';
+            NOM1_options_str  += '<option value="Kitingi">Kitingi</option>';
+            NOM1_options_str  += '<option value="Kitombe">Kitombe</option>';
+            NOM1_options_str  += '<option value="Kitopo">Kitopo</option>';
+            NOM1_options_str  += '<option value="Kitovo">Kitovo</option>';
+            NOM1_options_str  += '<option value="Kitoy Centre">Kitoy Centre</option>';
+            NOM1_options_str  += '<option value="Kitsamanga I">Kitsamanga I</option>';
+            NOM1_options_str  += '<option value="Kitsimba">Kitsimba</option>';
+            NOM1_options_str  += '<option value="Kitsombiro">Kitsombiro</option>';
+            NOM1_options_str  += '<option value="Kitsuku">Kitsuku</option>';
+            NOM1_options_str  += '<option value="Kitsule">Kitsule</option>';
+            NOM1_options_str  += '<option value="Kitutu Centre">Kitutu Centre</option>';
+            NOM1_options_str  += '<option value="Kiuli">Kiuli</option>';
+            NOM1_options_str  += '<option value="Kivati">Kivati</option>';
+            NOM1_options_str  += '<option value="Kivetya">Kivetya</option>';
+            NOM1_options_str  += '<option value="Kivika">Kivika</option>';
+            NOM1_options_str  += '<option value="Kiviriri">Kiviriri</option>';
+            NOM1_options_str  += '<option value="Kivugha">Kivugha</option>';
+            NOM1_options_str  += '<option value="Kivuwe">Kivuwe</option>';
+            NOM1_options_str  += '<option value="Kivuye">Kivuye</option>';
+            NOM1_options_str  += '<option value="Kiwawa Pont">Kiwawa Pont</option>';
+            NOM1_options_str  += '<option value="Kiwutu">Kiwutu</option>';
+            NOM1_options_str  += '<option value="Kiyaka Lunga">Kiyaka Lunga</option>';
+            NOM1_options_str  += '<option value="Kiyaka Mafutamingi">Kiyaka Mafutamingi</option>';
+            NOM1_options_str  += '<option value="Kiyamba">Kiyamba</option>';
+            NOM1_options_str  += '<option value="Kiyeye">Kiyeye</option>';
+            NOM1_options_str  += '<option value="Kizagazaga">Kizagazaga</option>';
+            NOM1_options_str  += '<option value="Kizefo">Kizefo</option>';
+            NOM1_options_str  += '<option value="Kiziba">Kiziba</option>';
+            NOM1_options_str  += '<option value="Kizimba">Kizimba</option>';
+            NOM1_options_str  += '<option value="Koko Mankondo">Koko Mankondo</option>';
+            NOM1_options_str  += '<option value="Kokola">Kokola</option>';
+            NOM1_options_str  += '<option value="Konde">Konde</option>';
+            NOM1_options_str  += '<option value="Koreama">Koreama</option>';
+            NOM1_options_str  += '<option value="Kudo">Kudo</option>';
+            NOM1_options_str  += '<option value="Kumbi Makopa">Kumbi Makopa</option>';
+            NOM1_options_str  += '<option value="Kumbi Mbwana">Kumbi Mbwana</option>';
+            NOM1_options_str  += '<option value="Kumbwa">Kumbwa</option>';
+            NOM1_options_str  += '<option value="Kumukari I">Kumukari I</option>';
+            NOM1_options_str  += '<option value="Kusisa">Kusisa</option>';
+            NOM1_options_str  += '<option value="Kwasi">Kwasi</option>';
+            NOM1_options_str  += '<option value="Kwaya Secteur">Kwaya Secteur</option>';
+            NOM1_options_str  += '<option value="Kwilandongo">Kwilandongo</option>';
+            NOM1_options_str  += '<option value="Kwilumpia">Kwilumpia</option>';
+            NOM1_options_str  += '<option value="Kyaghala">Kyaghala</option>';
+            NOM1_options_str  += '<option value="Kyaghala PRONOMEKO">Kyaghala PRONOMEKO</option>';
+            NOM1_options_str  += '<option value="Kyaghendi">Kyaghendi</option>';
+            NOM1_options_str  += '<option value="Kyambogho">Kyambogho</option>';
+            NOM1_options_str  += '<option value="Kyangendi">Kyangendi</option>';
+            NOM1_options_str  += '<option value="Kyangike">Kyangike</option>';
+            NOM1_options_str  += '<option value="Kyavinyonge">Kyavinyonge</option>';
+            NOM1_options_str  += '<option value="Kyavisogho">Kyavisogho</option>';
+            NOM1_options_str  += '<option value="Kyelu">Kyelu</option>';
+            NOM1_options_str  += '<option value="Kyondo">Kyondo</option>';
+            NOM1_options_str  += '<option value="Kyugama">Kyugama</option>';
+            NOM1_options_str  += '<option value="La Charité">La Charité</option>';
+            NOM1_options_str  += '<option value="La Guérison">La Guérison</option>';
+            NOM1_options_str  += '<option value="La Joie">La Joie</option>';
+            NOM1_options_str  += '<option value="La Persévérance">La Persévérance</option>';
+            NOM1_options_str  += '<option value="La Police">La Police</option>';
+            NOM1_options_str  += '<option value="Laba Central">Laba Central</option>';
+            NOM1_options_str  += '<option value="Laba Impini">Laba Impini</option>';
+            NOM1_options_str  += '<option value="Laba Komikwisi">Laba Komikwisi</option>';
+            NOM1_options_str  += '<option value="Laba Makingi">Laba Makingi</option>';
+            NOM1_options_str  += '<option value="Laba Mutsunu I">Laba Mutsunu I</option>';
+            NOM1_options_str  += '<option value="Laba Mutsunu II">Laba Mutsunu II</option>';
+            NOM1_options_str  += '<option value="Ladzum">Ladzum</option>';
+            NOM1_options_str  += '<option value="Lakas Mission Catholique">Lakas Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Langira">Langira</option>';
+            NOM1_options_str  += '<option value="Lemera">Lemera</option>';
+            NOM1_options_str  += '<option value="Leproserie">Leproserie</option>';
+            NOM1_options_str  += '<option value="Liboyo">Liboyo</option>';
+            NOM1_options_str  += '<option value="Limangi">Limangi</option>';
+            NOM1_options_str  += '<option value="Lirombi">Lirombi</option>';
+            NOM1_options_str  += '<option value="Lisasa">Lisasa</option>';
+            NOM1_options_str  += '<option value="Loashi">Loashi</option>';
+            NOM1_options_str  += '<option value="Lobiko">Lobiko</option>';
+            NOM1_options_str  += '<option value="Lomuna">Lomuna</option>';
+            NOM1_options_str  += '<option value="Loulo">Loulo</option>';
+            NOM1_options_str  += '<option value="Luana">Luana</option>';
+            NOM1_options_str  += '<option value="Lubang Nene">Lubang Nene</option>';
+            NOM1_options_str  += '<option value="Lubango">Lubango</option>';
+            NOM1_options_str  += '<option value="Lubarika">Lubarika</option>';
+            NOM1_options_str  += '<option value="Lubeo">Lubeo</option>';
+            NOM1_options_str  += '<option value="Luberizi">Luberizi</option>';
+            NOM1_options_str  += '<option value="Lubero">Lubero</option>';
+            NOM1_options_str  += '<option value="Lubero-Cité">Lubero-Cité</option>';
+            NOM1_options_str  += '<option value="Lubigi">Lubigi</option>';
+            NOM1_options_str  += '<option value="Lubile">Lubile</option>';
+            NOM1_options_str  += '<option value="Lubishako">Lubishako</option>';
+            NOM1_options_str  += '<option value="Lubondja">Lubondja</option>';
+            NOM1_options_str  += '<option value="Lubonga">Lubonga</option>';
+            NOM1_options_str  += '<option value="Lubonja">Lubonja</option>';
+            NOM1_options_str  += '<option value="Lubundji">Lubundji</option>';
+            NOM1_options_str  += '<option value="Lubunga">Lubunga</option>';
+            NOM1_options_str  += '<option value="Lubuye">Lubuye</option>';
+            NOM1_options_str  += '<option value="Lucimu">Lucimu</option>';
+            NOM1_options_str  += '<option value="Lugungu">Lugungu</option>';
+            NOM1_options_str  += '<option value="Lugushwa">Lugushwa</option>';
+            NOM1_options_str  += '<option value="Luhandala">Luhandala</option>';
+            NOM1_options_str  += '<option value="Luhanga">Luhanga</option>';
+            NOM1_options_str  += '<option value="Luhonga">Luhonga</option>';
+            NOM1_options_str  += '<option value="Lukanga">Lukanga</option>';
+            NOM1_options_str  += '<option value="Luke">Luke</option>';
+            NOM1_options_str  += '<option value="Lukonde">Lukonde</option>';
+            NOM1_options_str  += '<option value="Lukumba">Lukumba</option>';
+            NOM1_options_str  += '<option value="Lukundji">Lukundji</option>';
+            NOM1_options_str  += '<option value="Lukungu">Lukungu</option>';
+            NOM1_options_str  += '<option value="Lukwa Mbila">Lukwa Mbila</option>';
+            NOM1_options_str  += '<option value="Lukweti">Lukweti</option>';
+            NOM1_options_str  += '<option value="Luliba">Luliba</option>';
+            NOM1_options_str  += '<option value="Luliba Itumba">Luliba Itumba</option>';
+            NOM1_options_str  += '<option value="Lulimba Centre">Lulimba Centre</option>';
+            NOM1_options_str  += '<option value="Lulingu">Lulingu</option>';
+            NOM1_options_str  += '<option value="Lumala">Lumala</option>';
+            NOM1_options_str  += '<option value="Lumanye">Lumanye</option>';
+            NOM1_options_str  += '<option value="Lumba">Lumba</option>';
+            NOM1_options_str  += '<option value="Lumbi Daniel">Lumbi Daniel</option>';
+            NOM1_options_str  += '<option value="Lumbi Mission Catholique">Lumbi Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Lunga">Lunga</option>';
+            NOM1_options_str  += '<option value="Lungwama">Lungwama</option>';
+            NOM1_options_str  += '<option value="Luofu">Luofu</option>';
+            NOM1_options_str  += '<option value="Luotu">Luotu</option>';
+            NOM1_options_str  += '<option value="Lusambo">Lusambo</option>';
+            NOM1_options_str  += '<option value="Luseghe">Luseghe</option>';
+            NOM1_options_str  += '<option value="Luseke">Luseke</option>';
+            NOM1_options_str  += '<option value="Lusenda">Lusenda</option>';
+            NOM1_options_str  += '<option value="Lusenge">Lusenge</option>';
+            NOM1_options_str  += '<option value="Lushebere">Lushebere</option>';
+            NOM1_options_str  += '<option value="Lushindi">Lushindi</option>';
+            NOM1_options_str  += '<option value="Lusilu">Lusilu</option>';
+            NOM1_options_str  += '<option value="Lusingi">Lusingi</option>';
+            NOM1_options_str  += '<option value="Lusolo">Lusolo</option>';
+            NOM1_options_str  += '<option value="Lusowe">Lusowe</option>';
+            NOM1_options_str  += '<option value="Lutala">Lutala</option>';
+            NOM1_options_str  += '<option value="Lutchimu">Lutchimu</option>';
+            NOM1_options_str  += '<option value="Lutshamoko">Lutshamoko</option>';
+            NOM1_options_str  += '<option value="Luvungi">Luvungi</option>';
+            NOM1_options_str  += '<option value="Luwanga">Luwanga</option>';
+            NOM1_options_str  += '<option value="Luza">Luza</option>';
+            NOM1_options_str  += '<option value="Luzira">Luzira</option>';
+            NOM1_options_str  += '<option value="Lwama">Lwama</option>';
+            NOM1_options_str  += '<option value="Lwango">Lwango</option>';
+            NOM1_options_str  += '<option value="Lweba">Lweba</option>';
+            NOM1_options_str  += '<option value="Lwele Mbansam">Lwele Mbansam</option>';
+            NOM1_options_str  += '<option value="Lwele Mbele">Lwele Mbele</option>';
+            NOM1_options_str  += '<option value="Lwem I">Lwem I</option>';
+            NOM1_options_str  += '<option value="Lwibo">Lwibo</option>';
+            NOM1_options_str  += '<option value="MWH/Ntoyo">MWH/Ntoyo</option>';
+            NOM1_options_str  += '<option value="Mabakanga">Mabakanga</option>';
+            NOM1_options_str  += '<option value="Mabambi">Mabambi</option>';
+            NOM1_options_str  += '<option value="Mabanga">Mabanga</option>';
+            NOM1_options_str  += '<option value="Mabasele">Mabasele</option>';
+            NOM1_options_str  += '<option value="Mabenga">Mabenga</option>';
+            NOM1_options_str  += '<option value="Mabikwa">Mabikwa</option>';
+            NOM1_options_str  += '<option value="Mabila">Mabila</option>';
+            NOM1_options_str  += '<option value="Maboko">Maboko</option>';
+            NOM1_options_str  += '<option value="Mabolio">Mabolio</option>';
+            NOM1_options_str  += '<option value="Maboya">Maboya</option>';
+            NOM1_options_str  += '<option value="Mabuku">Mabuku</option>';
+            NOM1_options_str  += '<option value="Mabungo">Mabungo</option>';
+            NOM1_options_str  += '<option value="Mabuo">Mabuo</option>';
+            NOM1_options_str  += '<option value="Mabwe">Mabwe</option>';
+            NOM1_options_str  += '<option value="Machumbi">Machumbi</option>';
+            NOM1_options_str  += '<option value="Maday">Maday</option>';
+            NOM1_options_str  += '<option value="Madegu">Madegu</option>';
+            NOM1_options_str  += '<option value="Madrandele">Madrandele</option>';
+            NOM1_options_str  += '<option value="Maendeleo">Maendeleo</option>';
+            NOM1_options_str  += '<option value="Mafula">Mafula</option>';
+            NOM1_options_str  += '<option value="Mafutala">Mafutala</option>';
+            NOM1_options_str  += '<option value="Magherya">Magherya</option>';
+            NOM1_options_str  += '<option value="Maghombi">Maghombi</option>';
+            NOM1_options_str  += '<option value="Mahamba">Mahamba</option>';
+            NOM1_options_str  += '<option value="Mahanga">Mahanga</option>';
+            NOM1_options_str  += '<option value="Maheta">Maheta</option>';
+            NOM1_options_str  += '<option value="Mahungubwe">Mahungubwe</option>';
+            NOM1_options_str  += '<option value="Mahya">Mahya</option>';
+            NOM1_options_str  += '<option value="Maibano">Maibano</option>';
+            NOM1_options_str  += '<option value="Maindombe">Maindombe</option>';
+            NOM1_options_str  += '<option value="Maison Kituli">Maison Kituli</option>';
+            NOM1_options_str  += '<option value="Majengo">Majengo</option>';
+            NOM1_options_str  += '<option value="Majorite">Majorite</option>';
+            NOM1_options_str  += '<option value="Makala">Makala</option>';
+            NOM1_options_str  += '<option value="Makanga">Makanga</option>';
+            NOM1_options_str  += '<option value="Makanga I">Makanga I</option>';
+            NOM1_options_str  += '<option value="Makasi">Makasi</option>';
+            NOM1_options_str  += '<option value="Makerere">Makerere</option>';
+            NOM1_options_str  += '<option value="Makiala">Makiala</option>';
+            NOM1_options_str  += '<option value="Makoko">Makoko</option>';
+            NOM1_options_str  += '<option value="Makubi">Makubi</option>';
+            NOM1_options_str  += '<option value="Makuta">Makuta</option>';
+            NOM1_options_str  += '<option value="Mala">Mala</option>';
+            NOM1_options_str  += '<option value="Malangi">Malangi</option>';
+            NOM1_options_str  += '<option value="Maleki">Maleki</option>';
+            NOM1_options_str  += '<option value="Malele Enoyi">Malele Enoyi</option>';
+            NOM1_options_str  += '<option value="Malende">Malende</option>';
+            NOM1_options_str  += '<option value="Malepe">Malepe</option>';
+            NOM1_options_str  += '<option value="Maleta">Maleta</option>';
+            NOM1_options_str  += '<option value="Malihi">Malihi</option>';
+            NOM1_options_str  += '<option value="Malikumu">Malikumu</option>';
+            NOM1_options_str  += '<option value="Malinde">Malinde</option>';
+            NOM1_options_str  += '<option value="Malunga">Malunga</option>';
+            NOM1_options_str  += '<option value="Malunguma">Malunguma</option>';
+            NOM1_options_str  += '<option value="Mama Musay">Mama Musay</option>';
+            NOM1_options_str  += '<option value="Mama Rose">Mama Rose</option>';
+            NOM1_options_str  += '<option value="Mambau">Mambau</option>';
+            NOM1_options_str  += '<option value="Mambingi">Mambingi</option>';
+            NOM1_options_str  += '<option value="Mambowa">Mambowa</option>';
+            NOM1_options_str  += '<option value="Mamove">Mamove</option>';
+            NOM1_options_str  += '<option value="Mandelya">Mandelya</option>';
+            NOM1_options_str  += '<option value="Mandondo">Mandondo</option>';
+            NOM1_options_str  += '<option value="Maneno">Maneno</option>';
+            NOM1_options_str  += '<option value="Mangai I Etat">Mangai I Etat</option>';
+            NOM1_options_str  += '<option value="Mangai I Kimbanguiste">Mangai I Kimbanguiste</option>';
+            NOM1_options_str  += '<option value="Mangai I Paroisse">Mangai I Paroisse</option>';
+            NOM1_options_str  += '<option value="Mangai II Etat">Mangai II Etat</option>';
+            NOM1_options_str  += '<option value="Mangango">Mangango</option>';
+            NOM1_options_str  += '<option value="Mangemi">Mangemi</option>';
+            NOM1_options_str  += '<option value="Mangina">Mangina</option>';
+            NOM1_options_str  += '<option value="Mangodomu">Mangodomu</option>';
+            NOM1_options_str  += '<option value="Mangungu">Mangungu</option>';
+            NOM1_options_str  += '<option value="Manguredjipa">Manguredjipa</option>';
+            NOM1_options_str  += '<option value="Manie Miboti">Manie Miboti</option>';
+            NOM1_options_str  += '<option value="Mankondo">Mankondo</option>';
+            NOM1_options_str  += '<option value="Mapela">Mapela</option>';
+            NOM1_options_str  += '<option value="Mapendo">Mapendo</option>';
+            NOM1_options_str  += '<option value="Maranata">Maranata</option>';
+            NOM1_options_str  += '<option value="Maranhatan">Maranhatan</option>';
+            NOM1_options_str  += '<option value="Masaidizi">Masaidizi</option>';
+            NOM1_options_str  += '<option value="Masambo">Masambo</option>';
+            NOM1_options_str  += '<option value="Masambu">Masambu</option>';
+            NOM1_options_str  += '<option value="Masamuna">Masamuna</option>';
+            NOM1_options_str  += '<option value="Masangambagi">Masangambagi</option>';
+            NOM1_options_str  += '<option value="Masangata">Masangata</option>';
+            NOM1_options_str  += '<option value="Masangi">Masangi</option>';
+            NOM1_options_str  += '<option value="Masayi">Masayi</option>';
+            NOM1_options_str  += '<option value="Maseba">Maseba</option>';
+            NOM1_options_str  += '<option value="Masereka">Masereka</option>';
+            NOM1_options_str  += '<option value="Masha">Masha</option>';
+            NOM1_options_str  += '<option value="Mashuba">Mashuba</option>';
+            NOM1_options_str  += '<option value="Masi Secteur">Masi Secteur</option>';
+            NOM1_options_str  += '<option value="Masiki">Masiki</option>';
+            NOM1_options_str  += '<option value="Masisi">Masisi</option>';
+            NOM1_options_str  += '<option value="Masona">Masona</option>';
+            NOM1_options_str  += '<option value="Masoya">Masoya</option>';
+            NOM1_options_str  += '<option value="Masuli">Masuli</option>';
+            NOM1_options_str  += '<option value="Masumbili">Masumbili</option>';
+            NOM1_options_str  += '<option value="Masumo">Masumo</option>';
+            NOM1_options_str  += '<option value="Masunga">Masunga</option>';
+            NOM1_options_str  += '<option value="Matala">Matala</option>';
+            NOM1_options_str  += '<option value="Matamanko I">Matamanko I</option>';
+            NOM1_options_str  += '<option value="Matanda">Matanda</option>';
+            NOM1_options_str  += '<option value="Matata">Matata</option>';
+            NOM1_options_str  += '<option value="Matebe">Matebe</option>';
+            NOM1_options_str  += '<option value="Matebo">Matebo</option>';
+            NOM1_options_str  += '<option value="Mateko Etat">Mateko Etat</option>';
+            NOM1_options_str  += '<option value="Mateko Mission Catholique">Mateko Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Matembo">Matembo</option>';
+            NOM1_options_str  += '<option value="Matenga">Matenga</option>';
+            NOM1_options_str  += '<option value="Maternité Kalimbut">Maternité Kalimbut</option>';
+            NOM1_options_str  += '<option value="Mateto">Mateto</option>';
+            NOM1_options_str  += '<option value="Matili">Matili</option>';
+            NOM1_options_str  += '<option value="Matsinde">Matsinde</option>';
+            NOM1_options_str  += '<option value="Matu">Matu</option>';
+            NOM1_options_str  += '<option value="Matumaini">Matumaini</option>';
+            NOM1_options_str  += '<option value="Matutira">Matutira</option>';
+            NOM1_options_str  += '<option value="Mavivi">Mavivi</option>';
+            NOM1_options_str  += '<option value="Mavono">Mavono</option>';
+            NOM1_options_str  += '<option value="Mawe I">Mawe I</option>';
+            NOM1_options_str  += '<option value="Mayala">Mayala</option>';
+            NOM1_options_str  += '<option value="Mayili">Mayili</option>';
+            NOM1_options_str  += '<option value="Mayoko Niadi">Mayoko Niadi</option>';
+            NOM1_options_str  += '<option value="Mayoyo">Mayoyo</option>';
+            NOM1_options_str  += '<option value="Mayumu II">Mayumu II</option>';
+            NOM1_options_str  += '<option value="Mayung">Mayung</option>';
+            NOM1_options_str  += '<option value="Mazinga">Mazinga</option>';
+            NOM1_options_str  += '<option value="Mazozo">Mazozo</option>';
+            NOM1_options_str  += '<option value="Mbala I">Mbala I</option>';
+            NOM1_options_str  += '<option value="Mbalala">Mbalala</option>';
+            NOM1_options_str  += '<option value="Mbang Itere">Mbang Itere</option>';
+            NOM1_options_str  += '<option value="Mbansam">Mbansam</option>';
+            NOM1_options_str  += '<option value="Mbanza Gobari">Mbanza Gobari</option>';
+            NOM1_options_str  += '<option value="Mbanza Kataba">Mbanza Kataba</option>';
+            NOM1_options_str  += '<option value="Mbanza Makwata">Mbanza Makwata</option>';
+            NOM1_options_str  += '<option value="Mbanza Mfumu Nkento">Mbanza Mfumu Nkento</option>';
+            NOM1_options_str  += '<option value="Mbanza Wamba Masa">Mbanza Wamba Masa</option>';
+            NOM1_options_str  += '<option value="Mbau">Mbau</option>';
+            NOM1_options_str  += '<option value="Mbele Mbele">Mbele Mbele</option>';
+            NOM1_options_str  += '<option value="Mbelo">Mbelo</option>';
+            NOM1_options_str  += '<option value="Mbeni">Mbeni</option>';
+            NOM1_options_str  += '<option value="Mbeo Mission">Mbeo Mission</option>';
+            NOM1_options_str  += '<option value="Mbila I">Mbila I</option>';
+            NOM1_options_str  += '<option value="Mbilinga">Mbilinga</option>';
+            NOM1_options_str  += '<option value="Mbimbi">Mbimbi</option>';
+            NOM1_options_str  += '<option value="Mbinko Musese">Mbinko Musese</option>';
+            NOM1_options_str  += '<option value="Mbitsi">Mbitsi</option>';
+            NOM1_options_str  += '<option value="Mboko">Mboko</option>';
+            NOM1_options_str  += '<option value="Mbongi">Mbongi</option>';
+            NOM1_options_str  += '<option value="Mbongo">Mbongo</option>';
+            NOM1_options_str  += '<option value="Mbukulu">Mbukulu</option>';
+            NOM1_options_str  += '<option value="Mbumbutsa">Mbumbutsa</option>';
+            NOM1_options_str  += '<option value="Meilleure soins">Meilleure soins</option>';
+            NOM1_options_str  += '<option value="Mendje">Mendje</option>';
+            NOM1_options_str  += '<option value="Menkao">Menkao</option>';
+            NOM1_options_str  += '<option value="Miandja">Miandja</option>';
+            NOM1_options_str  += '<option value="Midede">Midede</option>';
+            NOM1_options_str  += '<option value="Migiembo">Migiembo</option>';
+            NOM1_options_str  += '<option value="Mihake">Mihake</option>';
+            NOM1_options_str  += '<option value="Miheta">Miheta</option>';
+            NOM1_options_str  += '<option value="Mikamba">Mikamba</option>';
+            NOM1_options_str  += '<option value="Miki">Miki</option>';
+            NOM1_options_str  += '<option value="Mikienge">Mikienge</option>';
+            NOM1_options_str  += '<option value="Mikiese">Mikiese</option>';
+            NOM1_options_str  += '<option value="Mikweme I">Mikweme I</option>';
+            NOM1_options_str  += '<option value="Mikyemikye">Mikyemikye</option>';
+            NOM1_options_str  += '<option value="Milanga">Milanga</option>';
+            NOM1_options_str  += '<option value="Milenda">Milenda</option>';
+            NOM1_options_str  += '<option value="Militaire">Militaire</option>';
+            NOM1_options_str  += '<option value="Mimbite">Mimbite</option>';
+            NOM1_options_str  += '<option value="Mimbondo">Mimbondo</option>';
+            NOM1_options_str  += '<option value="Mimpi">Mimpi</option>';
+            NOM1_options_str  += '<option value="Minembwe">Minembwe</option>';
+            NOM1_options_str  += '<option value="Mingazi">Mingazi</option>';
+            NOM1_options_str  += '<option value="Minoro">Minoro</option>';
+            NOM1_options_str  += '<option value="Minova">Minova</option>';
+            NOM1_options_str  += '<option value="Miriki">Miriki</option>';
+            NOM1_options_str  += '<option value="Miringate">Miringate</option>';
+            NOM1_options_str  += '<option value="Misau">Misau</option>';
+            NOM1_options_str  += '<option value="Misele">Misele</option>';
+            NOM1_options_str  += '<option value="Mishashu">Mishashu</option>';
+            NOM1_options_str  += '<option value="Misimbi">Misimbi</option>';
+            NOM1_options_str  += '<option value="Misimbwe">Misimbwe</option>';
+            NOM1_options_str  += '<option value="Misisi">Misisi</option>';
+            NOM1_options_str  += '<option value="Mission Mama Muilu Kimbanguiste (Gangan)">Mission Mama Muilu Kimbanguiste (Gangan)</option>';
+            NOM1_options_str  += '<option value="Misufi">Misufi</option>';
+            NOM1_options_str  += '<option value="Miswaki">Miswaki</option>';
+            NOM1_options_str  += '<option value="Miti Miti">Miti Miti</option>';
+            NOM1_options_str  += '<option value="Mitimiti">Mitimiti</option>';
+            NOM1_options_str  += '<option value="Mitobo Centre">Mitobo Centre</option>';
+            NOM1_options_str  += '<option value="Mitoya">Mitoya</option>';
+            NOM1_options_str  += '<option value="Mitshakila">Mitshakila</option>';
+            NOM1_options_str  += '<option value="Mitumbala">Mitumbala</option>';
+            NOM1_options_str  += '<option value="Mizimu/dine">Mizimu/dine</option>';
+            NOM1_options_str  += '<option value="Mizulo">Mizulo</option>';
+            NOM1_options_str  += '<option value="Mo Nkil">Mo Nkil</option>';
+            NOM1_options_str  += '<option value="Mokala">Mokala</option>';
+            NOM1_options_str  += '<option value="Mokamo Cke Camp Usine">Mokamo Cke Camp Usine</option>';
+            NOM1_options_str  += '<option value="Mokoto">Mokoto</option>';
+            NOM1_options_str  += '<option value="Moliro">Moliro</option>';
+            NOM1_options_str  += '<option value="Momfo I">Momfo I</option>';
+            NOM1_options_str  += '<option value="Mongali">Mongali</option>';
+            NOM1_options_str  += '<option value="Mongombala">Mongombala</option>';
+            NOM1_options_str  += '<option value="Mongonzala">Mongonzala</option>';
+            NOM1_options_str  += '<option value="Mont Carmel/ Vulin">Mont Carmel/ Vulin</option>';
+            NOM1_options_str  += '<option value="Monvu">Monvu</option>';
+            NOM1_options_str  += '<option value="Monye">Monye</option>';
+            NOM1_options_str  += '<option value="Mosango">Mosango</option>';
+            NOM1_options_str  += '<option value="Mosango Kisala">Mosango Kisala</option>';
+            NOM1_options_str  += '<option value="Mosango Secteur">Mosango Secteur</option>';
+            NOM1_options_str  += '<option value="Moyo">Moyo</option>';
+            NOM1_options_str  += '<option value="Mpale I et II">Mpale I et II</option>';
+            NOM1_options_str  += '<option value="Mpama">Mpama</option>';
+            NOM1_options_str  += '<option value="Mpango">Mpango</option>';
+            NOM1_options_str  += '<option value="Mpene">Mpene</option>';
+            NOM1_options_str  += '<option value="Mpila">Mpila</option>';
+            NOM1_options_str  += '<option value="Mpona">Mpona</option>';
+            NOM1_options_str  += '<option value="Mshimbaki">Mshimbaki</option>';
+            NOM1_options_str  += '<option value="Mubale">Mubale</option>';
+            NOM1_options_str  += '<option value="Mubana">Mubana</option>';
+            NOM1_options_str  += '<option value="Mubere">Mubere</option>';
+            NOM1_options_str  += '<option value="Mubungi I">Mubungi I</option>';
+            NOM1_options_str  += '<option value="Mubwa Tomusabu">Mubwa Tomusabu</option>';
+            NOM1_options_str  += '<option value="Muchanga">Muchanga</option>';
+            NOM1_options_str  += '<option value="Muchibwe">Muchibwe</option>';
+            NOM1_options_str  += '<option value="Mudiambu">Mudiambu</option>';
+            NOM1_options_str  += '<option value="Mudimbimbi">Mudimbimbi</option>';
+            NOM1_options_str  += '<option value="Mudingongo">Mudingongo</option>';
+            NOM1_options_str  += '<option value="Mudja">Mudja</option>';
+            NOM1_options_str  += '<option value="Mugaja">Mugaja</option>';
+            NOM1_options_str  += '<option value="Mugele">Mugele</option>';
+            NOM1_options_str  += '<option value="Mugote">Mugote</option>';
+            NOM1_options_str  += '<option value="Mugule">Mugule</option>';
+            NOM1_options_str  += '<option value="Mugunga">Mugunga</option>';
+            NOM1_options_str  += '<option value="Muheto">Muheto</option>';
+            NOM1_options_str  += '<option value="Muhungwe">Muhungwe</option>';
+            NOM1_options_str  += '<option value="Muhyahya">Muhyahya</option>';
+            NOM1_options_str  += '<option value="Mukaba">Mukaba</option>';
+            NOM1_options_str  += '<option value="Mukela">Mukela</option>';
+            NOM1_options_str  += '<option value="Mukemenge">Mukemenge</option>';
+            NOM1_options_str  += '<option value="Mukengi Poste">Mukengi Poste</option>';
+            NOM1_options_str  += '<option value="Mukilu">Mukilu</option>';
+            NOM1_options_str  += '<option value="Mukobya">Mukobya</option>';
+            NOM1_options_str  += '<option value="Mukoko Impini">Mukoko Impini</option>';
+            NOM1_options_str  += '<option value="Mukoko Musenge">Mukoko Musenge</option>';
+            NOM1_options_str  += '<option value="Mukolo">Mukolo</option>';
+            NOM1_options_str  += '<option value="Mukolwe">Mukolwe</option>';
+            NOM1_options_str  += '<option value="Mukombe">Mukombe</option>';
+            NOM1_options_str  += '<option value="Mukondi">Mukondi</option>';
+            NOM1_options_str  += '<option value="Mukongo">Mukongo</option>';
+            NOM1_options_str  += '<option value="Mukosa">Mukosa</option>';
+            NOM1_options_str  += '<option value="Mukulu Mutoy">Mukulu Mutoy</option>';
+            NOM1_options_str  += '<option value="Mukulubiala">Mukulubiala</option>';
+            NOM1_options_str  += '<option value="Mukulumbisi">Mukulumbisi</option>';
+            NOM1_options_str  += '<option value="Mukulya">Mukulya</option>';
+            NOM1_options_str  += '<option value="Mukuna">Mukuna</option>';
+            NOM1_options_str  += '<option value="Mulama">Mulama</option>';
+            NOM1_options_str  += '<option value="Mulamba">Mulamba</option>';
+            NOM1_options_str  += '<option value="Mulambi Centre">Mulambi Centre</option>';
+            NOM1_options_str  += '<option value="Mulambula I">Mulambula I</option>';
+            NOM1_options_str  += '<option value="Mulangane">Mulangane</option>';
+            NOM1_options_str  += '<option value="Mule/Mukundu">Mule/Mukundu</option>';
+            NOM1_options_str  += '<option value="Mulende">Mulende</option>';
+            NOM1_options_str  += '<option value="Mulinde">Mulinde</option>';
+            NOM1_options_str  += '<option value="Mulo">Mulo</option>';
+            NOM1_options_str  += '<option value="Mulonde">Mulonde</option>';
+            NOM1_options_str  += '<option value="Mulonge">Mulonge</option>';
+            NOM1_options_str  += '<option value="Mulongwe">Mulongwe</option>';
+            NOM1_options_str  += '<option value="Muluma Centre">Muluma Centre</option>';
+            NOM1_options_str  += '<option value="Mulumba">Mulumba</option>';
+            NOM1_options_str  += '<option value="Mulungushi">Mulungushi</option>';
+            NOM1_options_str  += '<option value="Mumba">Mumba</option>';
+            NOM1_options_str  += '<option value="Mumbuza">Mumbuza</option>';
+            NOM1_options_str  += '<option value="Muminia">Muminia</option>';
+            NOM1_options_str  += '<option value="Mundindi">Mundindi</option>';
+            NOM1_options_str  += '<option value="Munene">Munene</option>';
+            NOM1_options_str  += '<option value="Mungala">Mungala</option>';
+            NOM1_options_str  += '<option value="Mungano">Mungano</option>';
+            NOM1_options_str  += '<option value="Munganzi">Munganzi</option>';
+            NOM1_options_str  += '<option value="Mungo">Mungo</option>';
+            NOM1_options_str  += '<option value="Mungoma">Mungoma</option>';
+            NOM1_options_str  += '<option value="Mungondo Ezim">Mungondo Ezim</option>';
+            NOM1_options_str  += '<option value="Munkiti">Munkiti</option>';
+            NOM1_options_str  += '<option value="Munoli">Munoli</option>';
+            NOM1_options_str  += '<option value="Munsanga">Munsanga</option>';
+            NOM1_options_str  += '<option value="Mununze">Mununze</option>';
+            NOM1_options_str  += '<option value="Munyaga">Munyaga</option>';
+            NOM1_options_str  += '<option value="Muoma">Muoma</option>';
+            NOM1_options_str  += '<option value="Murambi">Murambi</option>';
+            NOM1_options_str  += '<option value="Muranda">Muranda</option>';
+            NOM1_options_str  += '<option value="Murara">Murara</option>';
+            NOM1_options_str  += '<option value="Muruo">Muruo</option>';
+            NOM1_options_str  += '<option value="Musanga Esal">Musanga Esal</option>';
+            NOM1_options_str  += '<option value="Musanze">Musanze</option>';
+            NOM1_options_str  += '<option value="Musasa">Musasa</option>';
+            NOM1_options_str  += '<option value="Musay">Musay</option>';
+            NOM1_options_str  += '<option value="Musenda">Musenda</option>';
+            NOM1_options_str  += '<option value="Musenge">Musenge</option>';
+            NOM1_options_str  += '<option value="Musenge I">Musenge I</option>';
+            NOM1_options_str  += '<option value="Musenge Kandodi">Musenge Kandodi</option>';
+            NOM1_options_str  += '<option value="Musenge Munene">Musenge Munene</option>';
+            NOM1_options_str  += '<option value="Musenyi">Musenyi</option>';
+            NOM1_options_str  += '<option value="Museya">Museya</option>';
+            NOM1_options_str  += '<option value="Mushababwe">Mushababwe</option>';
+            NOM1_options_str  += '<option value="Mushebere">Mushebere</option>';
+            NOM1_options_str  += '<option value="Musholo">Musholo</option>';
+            NOM1_options_str  += '<option value="Musienene">Musienene</option>';
+            NOM1_options_str  += '<option value="Musimbo">Musimbo</option>';
+            NOM1_options_str  += '<option value="Musongela">Musongela</option>';
+            NOM1_options_str  += '<option value="Musuku">Musuku</option>';
+            NOM1_options_str  += '<option value="Musumba">Musumba</option>';
+            NOM1_options_str  += '<option value="Musungi">Musungi</option>';
+            NOM1_options_str  += '<option value="Mutabo">Mutabo</option>';
+            NOM1_options_str  += '<option value="Mutakato">Mutakato</option>';
+            NOM1_options_str  += '<option value="Mutale">Mutale</option>';
+            NOM1_options_str  += '<option value="Mutalindulwe">Mutalindulwe</option>';
+            NOM1_options_str  += '<option value="Mutanga">Mutanga</option>';
+            NOM1_options_str  += '<option value="Mutarule">Mutarule</option>';
+            NOM1_options_str  += '<option value="Mutarule2">Mutarule2</option>';
+            NOM1_options_str  += '<option value="Mutema">Mutema</option>';
+            NOM1_options_str  += '<option value="Mutendero">Mutendero</option>';
+            NOM1_options_str  += '<option value="Mutiri">Mutiri</option>';
+            NOM1_options_str  += '<option value="Mutonwa">Mutonwa</option>';
+            NOM1_options_str  += '<option value="Mutoy Mission Catholique">Mutoy Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Mutwanga">Mutwanga</option>';
+            NOM1_options_str  += '<option value="Muungano Res">Muungano Res</option>';
+            NOM1_options_str  += '<option value="Muwanda Koso">Muwanda Koso</option>';
+            NOM1_options_str  += '<option value="Muyisa">Muyisa</option>';
+            NOM1_options_str  += '<option value="Muzo Masangisa">Muzo Masangisa</option>';
+            NOM1_options_str  += '<option value="Mwanangombe">Mwanangombe</option>';
+            NOM1_options_str  += '<option value="Mwanankusu">Mwanankusu</option>';
+            NOM1_options_str  += '<option value="Mwangaza">Mwangaza</option>';
+            NOM1_options_str  += '<option value="Mwange">Mwange</option>';
+            NOM1_options_str  += '<option value="Mwayenga">Mwayenga</option>';
+            NOM1_options_str  += '<option value="Mwefo I">Mwefo I</option>';
+            NOM1_options_str  += '<option value="Mwenda">Mwenda</option>';
+            NOM1_options_str  += '<option value="Mweso">Mweso</option>';
+            NOM1_options_str  += '<option value="Mweso/Rugarama">Mweso/Rugarama</option>';
+            NOM1_options_str  += '<option value="Mweta">Mweta</option>';
+            NOM1_options_str  += '<option value="Myowe">Myowe</option>';
+            NOM1_options_str  += '<option value="N&apos;Kimba">N&apos;Kimba</option>';
+            NOM1_options_str  += '<option value="Nakiele">Nakiele</option>';
+            NOM1_options_str  += '<option value="Namutiri">Namutiri</option>';
+            NOM1_options_str  += '<option value="Nandjale">Nandjale</option>';
+            NOM1_options_str  += '<option value="Nangoma">Nangoma</option>';
+            NOM1_options_str  += '<option value="Natebo">Natebo</option>';
+            NOM1_options_str  += '<option value="Nazareth">Nazareth</option>';
+            NOM1_options_str  += '<option value="Ndegu / Katobo">Ndegu / Katobo</option>';
+            NOM1_options_str  += '<option value="Ndoluma">Ndoluma</option>';
+            NOM1_options_str  += '<option value="Ndosho">Ndosho</option>';
+            NOM1_options_str  += '<option value="Nduba">Nduba</option>';
+            NOM1_options_str  += '<option value="Nduko">Nduko</option>';
+            NOM1_options_str  += '<option value="Ndunda">Ndunda</option>';
+            NOM1_options_str  += '<option value="Ndwiy I">Ndwiy I</option>';
+            NOM1_options_str  += '<option value="Neema">Neema</option>';
+            NOM1_options_str  += '<option value="Nemba">Nemba</option>';
+            NOM1_options_str  += '<option value="Nesanga">Nesanga</option>';
+            NOM1_options_str  += '<option value="Ngalula">Ngalula</option>';
+            NOM1_options_str  += '<option value="Ngambwa">Ngambwa</option>';
+            NOM1_options_str  += '<option value="Ngandungala">Ngandungala</option>';
+            NOM1_options_str  += '<option value="Nganfumu">Nganfumu</option>';
+            NOM1_options_str  += '<option value="Ngani">Ngani</option>';
+            NOM1_options_str  += '<option value="Ngazi">Ngazi</option>';
+            NOM1_options_str  += '<option value="Ngebumu II">Ngebumu II</option>';
+            NOM1_options_str  += '<option value="Ngele">Ngele</option>';
+            NOM1_options_str  += '<option value="Ngeleza">Ngeleza</option>';
+            NOM1_options_str  += '<option value="Ngenda">Ngenda</option>';
+            NOM1_options_str  += '<option value="Ngenge">Ngenge</option>';
+            NOM1_options_str  += '<option value="Ngengere">Ngengere</option>';
+            NOM1_options_str  += '<option value="Ngienkung">Ngienkung</option>';
+            NOM1_options_str  += '<option value="Ngitse">Ngitse</option>';
+            NOM1_options_str  += '<option value="Ngogholo">Ngogholo</option>';
+            NOM1_options_str  += '<option value="Ngola">Ngola</option>';
+            NOM1_options_str  += '<option value="Ngolole">Ngolole</option>';
+            NOM1_options_str  += '<option value="Ngoma">Ngoma</option>';
+            NOM1_options_str  += '<option value="Ngomashi">Ngomashi</option>';
+            NOM1_options_str  += '<option value="Ngongo">Ngongo</option>';
+            NOM1_options_str  += '<option value="Ngoso Mission Catholique">Ngoso Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Ngoyo">Ngoyo</option>';
+            NOM1_options_str  += '<option value="Ngula">Ngula</option>';
+            NOM1_options_str  += '<option value="Ngulumusitu">Ngulumusitu</option>';
+            NOM1_options_str  += '<option value="Ngulungu">Ngulungu</option>';
+            NOM1_options_str  += '<option value="Ngumo">Ngumo</option>';
+            NOM1_options_str  += '<option value="Ngungu">Ngungu</option>';
+            NOM1_options_str  += '<option value="Ngusu">Ngusu</option>';
+            NOM1_options_str  += '<option value="Ngwari Ngwari">Ngwari Ngwari</option>';
+            NOM1_options_str  += '<option value="Ngweme">Ngweme</option>';
+            NOM1_options_str  += '<option value="Niadi">Niadi</option>';
+            NOM1_options_str  += '<option value="Nianga">Nianga</option>';
+            NOM1_options_str  += '<option value="Nkara Centre">Nkara Centre</option>';
+            NOM1_options_str  += '<option value="Nkara Ewa">Nkara Ewa</option>';
+            NOM1_options_str  += '<option value="Nkil">Nkil</option>';
+            NOM1_options_str  += '<option value="Nking">Nking</option>';
+            NOM1_options_str  += '<option value="Nko">Nko</option>';
+            NOM1_options_str  += '<option value="Nkuvu">Nkuvu</option>';
+            NOM1_options_str  += '<option value="Nsekimputu">Nsekimputu</option>';
+            NOM1_options_str  += '<option value="Nsenge Nsenge">Nsenge Nsenge</option>';
+            NOM1_options_str  += '<option value="Nsien Bidiba">Nsien Bidiba</option>';
+            NOM1_options_str  += '<option value="Nsimansie">Nsimansie</option>';
+            NOM1_options_str  += '<option value="Nsong Ntor">Nsong Ntor</option>';
+            NOM1_options_str  += '<option value="Nsongo Mbudi Nseke">Nsongo Mbudi Nseke</option>';
+            NOM1_options_str  += '<option value="Nsongo Ndung">Nsongo Ndung</option>';
+            NOM1_options_str  += '<option value="Nsongo Nsie">Nsongo Nsie</option>';
+            NOM1_options_str  += '<option value="Nsongo Pili Pili">Nsongo Pili Pili</option>';
+            NOM1_options_str  += '<option value="Ntandu Village">Ntandu Village</option>';
+            NOM1_options_str  += '<option value="Ntolukwa">Ntolukwa</option>';
+            NOM1_options_str  += '<option value="Ntombo">Ntombo</option>';
+            NOM1_options_str  += '<option value="Ntoto">Ntoto</option>';
+            NOM1_options_str  += '<option value="Ntoy">Ntoy</option>';
+            NOM1_options_str  += '<option value="Ntulu">Ntulu</option>';
+            NOM1_options_str  += '<option value="Ntulu Mamba">Ntulu Mamba</option>';
+            NOM1_options_str  += '<option value="Numbi">Numbi</option>';
+            NOM1_options_str  += '<option value="Nundu">Nundu</option>';
+            NOM1_options_str  += '<option value="Nyabangere">Nyabangere</option>';
+            NOM1_options_str  += '<option value="Nyabanira">Nyabanira</option>';
+            NOM1_options_str  += '<option value="Nyabiondo">Nyabiondo</option>';
+            NOM1_options_str  += '<option value="Nyakabere 2">Nyakabere 2</option>';
+            NOM1_options_str  += '<option value="Nyakahanga">Nyakahanga</option>';
+            NOM1_options_str  += '<option value="Nyakakoma">Nyakakoma</option>';
+            NOM1_options_str  += '<option value="Nyakalengwa">Nyakalengwa</option>';
+            NOM1_options_str  += '<option value="Nyakanyama">Nyakanyama</option>';
+            NOM1_options_str  += '<option value="Nyakariba">Nyakariba</option>';
+            NOM1_options_str  += '<option value="Nyakatulo">Nyakatulo</option>';
+            NOM1_options_str  += '<option value="Nyalukungu">Nyalukungu</option>';
+            NOM1_options_str  += '<option value="Nyalungu">Nyalungu</option>';
+            NOM1_options_str  += '<option value="Nyamasasa">Nyamasasa</option>';
+            NOM1_options_str  += '<option value="Nyamibungu">Nyamibungu</option>';
+            NOM1_options_str  += '<option value="Nyamilima">Nyamilima</option>';
+            NOM1_options_str  += '<option value="Nyamitaba">Nyamitaba</option>';
+            NOM1_options_str  += '<option value="Nyamitwitwi">Nyamitwitwi</option>';
+            NOM1_options_str  += '<option value="Nyamugali">Nyamugali</option>';
+            NOM1_options_str  += '<option value="Nyamukubi">Nyamukubi</option>';
+            NOM1_options_str  += '<option value="Nyangi Milimba">Nyangi Milimba</option>';
+            NOM1_options_str  += '<option value="Nyankunde">Nyankunde</option>';
+            NOM1_options_str  += '<option value="Nyanzale">Nyanzale</option>';
+            NOM1_options_str  += '<option value="Nyaringi">Nyaringi</option>';
+            NOM1_options_str  += '<option value="Nyarubande">Nyarubande</option>';
+            NOM1_options_str  += '<option value="Nyaruhange">Nyaruhange</option>';
+            NOM1_options_str  += '<option value="Nyarukwangara">Nyarukwangara</option>';
+            NOM1_options_str  += '<option value="Nyassi">Nyassi</option>';
+            NOM1_options_str  += '<option value="Nzembe Okie">Nzembe Okie</option>';
+            NOM1_options_str  += '<option value="Nzenga">Nzenga</option>';
+            NOM1_options_str  += '<option value="Nzombi">Nzombi</option>';
+            NOM1_options_str  += '<option value="Obaye">Obaye</option>';
+            NOM1_options_str  += '<option value="Oicha">Oicha</option>';
+            NOM1_options_str  += '<option value="Okun">Okun</option>';
+            NOM1_options_str  += '<option value="Olomo Mpese">Olomo Mpese</option>';
+            NOM1_options_str  += '<option value="Ombole">Ombole</option>';
+            NOM1_options_str  += '<option value="Otanga">Otanga</option>';
+            NOM1_options_str  += '<option value="Otobora">Otobora</option>';
+            NOM1_options_str  += '<option value="Ovuyingo">Ovuyingo</option>';
+            NOM1_options_str  += '<option value="PS Rughenda">PS Rughenda</option>';
+            NOM1_options_str  += '<option value="Paida">Paida</option>';
+            NOM1_options_str  += '<option value="Paka Paka Paul II">Paka Paka Paul II</option>';
+            NOM1_options_str  += '<option value="Palais">Palais</option>';
+            NOM1_options_str  += '<option value="Palanga">Palanga</option>';
+            NOM1_options_str  += '<option value="Pangi">Pangi</option>';
+            NOM1_options_str  += '<option value="Pangu Milundu">Pangu Milundu</option>';
+            NOM1_options_str  += '<option value="Pangu Onatra">Pangu Onatra</option>';
+            NOM1_options_str  += '<option value="Panu II">Panu II</option>';
+            NOM1_options_str  += '<option value="Panu Sumbu">Panu Sumbu</option>';
+            NOM1_options_str  += '<option value="Pastor Bonus">Pastor Bonus</option>';
+            NOM1_options_str  += '<option value="Pelo Kumbi">Pelo Kumbi</option>';
+            NOM1_options_str  += '<option value="Pene Idolwa">Pene Idolwa</option>';
+            NOM1_options_str  += '<option value="Penekusu">Penekusu</option>';
+            NOM1_options_str  += '<option value="Penemagu">Penemagu</option>';
+            NOM1_options_str  += '<option value="Pepsi">Pepsi</option>';
+            NOM1_options_str  += '<option value="Pety">Pety</option>';
+            NOM1_options_str  += '<option value="Pindi Mission Catholique">Pindi Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Pinga">Pinga</option>';
+            NOM1_options_str  += '<option value="Plantation">Plantation</option>';
+            NOM1_options_str  += '<option value="Plus">Plus</option>';
+            NOM1_options_str  += '<option value="Pole Amani">Pole Amani</option>';
+            NOM1_options_str  += '<option value="Pole Pole">Pole Pole</option>';
+            NOM1_options_str  += '<option value="Polongo">Polongo</option>';
+            NOM1_options_str  += '<option value="Poly ISTM">Poly ISTM</option>';
+            NOM1_options_str  += '<option value="Polyclinic Jehovah Rapha">Polyclinic Jehovah Rapha</option>';
+            NOM1_options_str  += '<option value="Polyclinique Marungu">Polyclinique Marungu</option>';
+            NOM1_options_str  += '<option value="Poste de santé Kirungu">Poste de santé Kirungu</option>';
+            NOM1_options_str  += '<option value="Prolasa">Prolasa</option>';
+            NOM1_options_str  += '<option value="Promac">Promac</option>';
+            NOM1_options_str  += '<option value="Pukusu">Pukusu</option>';
+            NOM1_options_str  += '<option value="Pungu">Pungu</option>';
+            NOM1_options_str  += '<option value="Pungwe">Pungwe</option>';
+            NOM1_options_str  += '<option value="Punkulu Mungongo">Punkulu Mungongo</option>';
+            NOM1_options_str  += '<option value="Pwanga Village">Pwanga Village</option>';
+            NOM1_options_str  += '<option value="Quartier Bibodi">Quartier Bibodi</option>';
+            NOM1_options_str  += '<option value="Quartier Kanga Miese">Quartier Kanga Miese</option>';
+            NOM1_options_str  += '<option value="Quartier Kasenga">Quartier Kasenga</option>';
+            NOM1_options_str  += '<option value="Rafiki">Rafiki</option>';
+            NOM1_options_str  += '<option value="Ramba">Ramba</option>';
+            NOM1_options_str  += '<option value="Rambo">Rambo</option>';
+            NOM1_options_str  += '<option value="Rombe 1">Rombe 1</option>';
+            NOM1_options_str  += '<option value="Rubana">Rubana</option>';
+            NOM1_options_str  += '<option value="Rubanga">Rubanga</option>';
+            NOM1_options_str  += '<option value="Rubare">Rubare</option>';
+            NOM1_options_str  += '<option value="Rubaya">Rubaya</option>';
+            NOM1_options_str  += '<option value="Rugari">Rugari</option>';
+            NOM1_options_str  += '<option value="Rugenge">Rugenge</option>';
+            NOM1_options_str  += '<option value="Rugetsi">Rugetsi</option>';
+            NOM1_options_str  += '<option value="Rughenda">Rughenda</option>';
+            NOM1_options_str  += '<option value="Ruhegeri">Ruhegeri</option>';
+            NOM1_options_str  += '<option value="Ruhemba">Ruhemba</option>';
+            NOM1_options_str  += '<option value="Ruhito">Ruhito</option>';
+            NOM1_options_str  += '<option value="Ruhuha">Ruhuha</option>';
+            NOM1_options_str  += '<option value="Rurimbi">Rurimbi</option>';
+            NOM1_options_str  += '<option value="Rusekera">Rusekera</option>';
+            NOM1_options_str  += '<option value="Rushovu">Rushovu</option>';
+            NOM1_options_str  += '<option value="Rutigita / Monyi">Rutigita / Monyi</option>';
+            NOM1_options_str  += '<option value="Rutshuru">Rutshuru</option>';
+            NOM1_options_str  += '<option value="Rutsiro">Rutsiro</option>';
+            NOM1_options_str  += '<option value="Ruvumera">Ruvumera</option>';
+            NOM1_options_str  += '<option value="Ruwenzori">Ruwenzori</option>';
+            NOM1_options_str  += '<option value="Rwahwa Kyavitutu">Rwahwa Kyavitutu</option>';
+            NOM1_options_str  += '<option value="Rwahwa Matwi">Rwahwa Matwi</option>';
+            NOM1_options_str  += '<option value="Rwanguba">Rwanguba</option>';
+            NOM1_options_str  += '<option value="Rwenena">Rwenena</option>';
+            NOM1_options_str  += '<option value="Rwese">Rwese</option>';
+            NOM1_options_str  += '<option value="Rwibudure / Kiringye">Rwibudure / Kiringye</option>';
+            NOM1_options_str  += '<option value="Rwindi">Rwindi</option>';
+            NOM1_options_str  += '<option value="Sabiazo">Sabiazo</option>';
+            NOM1_options_str  += '<option value="Saint Paul">Saint Paul</option>';
+            NOM1_options_str  += '<option value="Sainte Thérèse">Sainte Thérèse</option>';
+            NOM1_options_str  += '<option value="Saka Centre">Saka Centre</option>';
+            NOM1_options_str  += '<option value="Sake">Sake</option>';
+            NOM1_options_str  += '<option value="Salama">Salama</option>';
+            NOM1_options_str  += '<option value="Samweli">Samweli</option>';
+            NOM1_options_str  += '<option value="Sanga">Sanga</option>';
+            NOM1_options_str  += '<option value="Sango">Sango</option>';
+            NOM1_options_str  += '<option value="Sayo">Sayo</option>';
+            NOM1_options_str  += '<option value="Sebele">Sebele</option>';
+            NOM1_options_str  += '<option value="Sedzo">Sedzo</option>';
+            NOM1_options_str  += '<option value="Selembe">Selembe</option>';
+            NOM1_options_str  += '<option value="Shangi">Shangi</option>';
+            NOM1_options_str  += '<option value="Shayo">Shayo</option>';
+            NOM1_options_str  += '<option value="Shinda">Shinda</option>';
+            NOM1_options_str  += '<option value="Shishi">Shishi</option>';
+            NOM1_options_str  += '<option value="Sikwaila">Sikwaila</option>';
+            NOM1_options_str  += '<option value="Simbi">Simbi</option>';
+            NOM1_options_str  += '<option value="Singa">Singa</option>';
+            NOM1_options_str  += '<option value="Societe Marie Immaculee">Societe Marie Immaculee</option>';
+            NOM1_options_str  += '<option value="Sondji">Sondji</option>';
+            NOM1_options_str  += '<option value="Songo">Songo</option>';
+            NOM1_options_str  += '<option value="Sous Paroisse Kimbanguistes">Sous Paroisse Kimbanguistes</option>';
+            NOM1_options_str  += '<option value="St Benoit">St Benoit</option>';
+            NOM1_options_str  += '<option value="St Thomas">St Thomas</option>';
+            NOM1_options_str  += '<option value="Ste Famille">Ste Famille</option>';
+            NOM1_options_str  += '<option value="Ste Ste Bakhita">Ste Ste Bakhita</option>';
+            NOM1_options_str  += '<option value="Sulo">Sulo</option>';
+            NOM1_options_str  += '<option value="Sungu">Sungu</option>';
+            NOM1_options_str  += '<option value="Supa">Supa</option>';
+            NOM1_options_str  += '<option value="Swima">Swima</option>';
+            NOM1_options_str  += '<option value="Talama">Talama</option>';
+            NOM1_options_str  += '<option value="Tambi">Tambi</option>';
+            NOM1_options_str  += '<option value="Tamende">Tamende</option>';
+            NOM1_options_str  += '<option value="Tanda">Tanda</option>';
+            NOM1_options_str  += '<option value="Taraja">Taraja</option>';
+            NOM1_options_str  += '<option value="Taribu">Taribu</option>';
+            NOM1_options_str  += '<option value="Tasi Kaluhite">Tasi Kaluhite</option>';
+            NOM1_options_str  += '<option value="Tchalumba">Tchalumba</option>';
+            NOM1_options_str  += '<option value="Tchatela">Tchatela</option>';
+            NOM1_options_str  += '<option value="Tchelu">Tchelu</option>';
+            NOM1_options_str  += '<option value="Tcheshero II">Tcheshero II</option>';
+            NOM1_options_str  += '<option value="Tcheusi">Tcheusi</option>';
+            NOM1_options_str  += '<option value="Tchofi">Tchofi</option>';
+            NOM1_options_str  += '<option value="Tebe I">Tebe I</option>';
+            NOM1_options_str  += '<option value="Tebe Tebe">Tebe Tebe</option>';
+            NOM1_options_str  += '<option value="Tinge">Tinge</option>';
+            NOM1_options_str  += '<option value="Tomokoko I">Tomokoko I</option>';
+            NOM1_options_str  += '<option value="Tongo">Tongo</option>';
+            NOM1_options_str  += '<option value="Tout est Grâce">Tout est Grâce</option>';
+            NOM1_options_str  += '<option value="Trabanga">Trabanga</option>';
+            NOM1_options_str  += '<option value="Tshene Mission Protestante">Tshene Mission Protestante</option>';
+            NOM1_options_str  += '<option value="Tshiangunu">Tshiangunu</option>';
+            NOM1_options_str  += '<option value="Tshuku Tshuku">Tshuku Tshuku</option>';
+            NOM1_options_str  += '<option value="Tufikiri">Tufikiri</option>';
+            NOM1_options_str  += '<option value="Tukenga1,2,3">Tukenga1,2,3</option>';
+            NOM1_options_str  += '<option value="Tukufu">Tukufu</option>';
+            NOM1_options_str  += '<option value="Tukumbi">Tukumbi</option>';
+            NOM1_options_str  += '<option value="Tulizeni">Tulizeni</option>';
+            NOM1_options_str  += '<option value="Tulizo Letu">Tulizo Letu</option>';
+            NOM1_options_str  += '<option value="Tumaini">Tumaini</option>';
+            NOM1_options_str  += '<option value="Tumaini Letu">Tumaini Letu</option>';
+            NOM1_options_str  += '<option value="Tumikia Mission">Tumikia Mission</option>';
+            NOM1_options_str  += '<option value="Tuntungulu">Tuntungulu</option>';
+            NOM1_options_str  += '<option value="Tunzundu">Tunzundu</option>';
+            NOM1_options_str  += '<option value="Tushunguti">Tushunguti</option>';
+            NOM1_options_str  += '<option value="Tusisi">Tusisi</option>';
+            NOM1_options_str  += '<option value="UCG">UCG</option>';
+            NOM1_options_str  += '<option value="UWAKA">UWAKA</option>';
+            NOM1_options_str  += '<option value="Ufamandu">Ufamandu</option>';
+            NOM1_options_str  += '<option value="Ulame">Ulame</option>';
+            NOM1_options_str  += '<option value="Umoja">Umoja</option>';
+            NOM1_options_str  += '<option value="Ushindi Ni wa Yesu">Ushindi Ni wa Yesu</option>';
+            NOM1_options_str  += '<option value="Uzima Bora">Uzima Bora</option>';
+            NOM1_options_str  += '<option value="Vayana">Vayana</option>';
+            NOM1_options_str  += '<option value="Vighango">Vighango</option>';
+            NOM1_options_str  += '<option value="Vighole">Vighole</option>';
+            NOM1_options_str  += '<option value="Vihulu">Vihulu</option>';
+            NOM1_options_str  += '<option value="Virunga">Virunga</option>';
+            NOM1_options_str  += '<option value="Visarabwe">Visarabwe</option>';
+            NOM1_options_str  += '<option value="Visiki">Visiki</option>';
+            NOM1_options_str  += '<option value="Vitsumbi">Vitsumbi</option>';
+            NOM1_options_str  += '<option value="Vitumbi">Vitumbi</option>';
+            NOM1_options_str  += '<option value="Vuhalihya">Vuhalihya</option>';
+            NOM1_options_str  += '<option value="Vuhika">Vuhika</option>';
+            NOM1_options_str  += '<option value="Vuhimba">Vuhimba</option>';
+            NOM1_options_str  += '<option value="Vuhovi">Vuhovi</option>';
+            NOM1_options_str  += '<option value="Vuhunga">Vuhunga</option>';
+            NOM1_options_str  += '<option value="Vukendo">Vukendo</option>';
+            NOM1_options_str  += '<option value="Vukwa">Vukwa</option>';
+            NOM1_options_str  += '<option value="Vula">Vula</option>';
+            NOM1_options_str  += '<option value="Vulamiro">Vulamiro</option>';
+            NOM1_options_str  += '<option value="Vuletse">Vuletse</option>';
+            NOM1_options_str  += '<option value="Vulimira">Vulimira</option>';
+            NOM1_options_str  += '<option value="Vumilia">Vumilia</option>';
+            NOM1_options_str  += '<option value="Vungi">Vungi</option>';
+            NOM1_options_str  += '<option value="Vunyakondomi">Vunyakondomi</option>';
+            NOM1_options_str  += '<option value="Vuranga">Vuranga</option>';
+            NOM1_options_str  += '<option value="Vurondo">Vurondo</option>';
+            NOM1_options_str  += '<option value="Vurondo/Ancien">Vurondo/Ancien</option>';
+            NOM1_options_str  += '<option value="Vusa">Vusa</option>';
+            NOM1_options_str  += '<option value="Vusamba">Vusamba</option>';
+            NOM1_options_str  += '<option value="Vusayi">Vusayi</option>';
+            NOM1_options_str  += '<option value="Vusayiro">Vusayiro</option>';
+            NOM1_options_str  += '<option value="Vusitoro">Vusitoro</option>';
+            NOM1_options_str  += '<option value="Vusorongi">Vusorongi</option>';
+            NOM1_options_str  += '<option value="Vutahi">Vutahi</option>';
+            NOM1_options_str  += '<option value="Vutahira">Vutahira</option>';
+            NOM1_options_str  += '<option value="Vutetse">Vutetse</option>';
+            NOM1_options_str  += '<option value="Vutihye">Vutihye</option>';
+            NOM1_options_str  += '<option value="Vutumbi">Vutumbi</option>';
+            NOM1_options_str  += '<option value="Vuvogho">Vuvogho</option>';
+            NOM1_options_str  += '<option value="Vyakuno">Vyakuno</option>';
+            NOM1_options_str  += '<option value="Walikale">Walikale</option>';
+            NOM1_options_str  += '<option value="Walungu">Walungu</option>';
+            NOM1_options_str  += '<option value="Wamba">Wamba</option>';
+            NOM1_options_str  += '<option value="Wanamahika">Wanamahika</option>';
+            NOM1_options_str  += '<option value="Wayene">Wayene</option>';
+            NOM1_options_str  += '<option value="Wokovu">Wokovu</option>';
+            NOM1_options_str  += '<option value="Wungu">Wungu</option>';
+            NOM1_options_str  += '<option value="Yambau">Yambau</option>';
+            NOM1_options_str  += '<option value="Yasa Mission Catholique">Yasa Mission Catholique</option>';
+            NOM1_options_str  += '<option value="Yeku">Yeku</option>';
+            NOM1_options_str  += '<option value="Yesu ni Bwana">Yesu ni Bwana</option>';
+            NOM1_options_str  += '<option value="Yuma">Yuma</option>';
+            NOM1_options_str  += '<option value="Yungu">Yungu</option>';
+            NOM1_options_str  += '<option value="Zawadi">Zawadi</option>';
+            NOM1_options_str  += '<option value="Zingu">Zingu</option>';
+            NOM1_options_str  += '<option value="Zulubanga">Zulubanga</option>';
+            NOM1_options_str  += '<option value="cité">cité</option>';
+            sel_NOM1.innerHTML = NOM1_options_str;
+            div_NOM1.appendChild(sel_NOM1);
+            var lab_NOM1 = document.createElement('div');
+            lab_NOM1.innerHTML = 'NOM1';
+            lab_NOM1.className = 'filterlabel';
+            div_NOM1.appendChild(lab_NOM1);
+            var reset_NOM1 = document.createElement('div');
+            reset_NOM1.innerHTML = 'clear filter';
+            reset_NOM1.className = 'filterlabel';
+            reset_NOM1.onclick = function() {
+                var options = document.getElementById("sel_NOM1").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_NOM1.appendChild(reset_NOM1);
+        </script>
+    </body>
+</html>
